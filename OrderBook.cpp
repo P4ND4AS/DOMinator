@@ -366,3 +366,23 @@ void OrderBook::update(int n_iter) {
     }
 }
 
+
+void OrderBook::createHeatMap(const BookSnapshot& snapshot, std::vector<std::vector<float>>& heatmap, int height, int width) {
+    for (int r = 0; r < height; ++r) {
+        for (int c = 0; c < width; ++c) {
+            heatmap[r][c] = heatmap[r][c + 1];
+        }
+    }
+
+    double min_price = initialPrice - (height / 2);
+    for (int r = 0; r < height; ++r) {
+        double price_level = min_price + r;
+        float volume = 0.0f;
+
+        auto listOfOrders = currentBook.prices[price_level];
+        for (auto order : listOfOrders) {
+            depth += order.size;
+        }
+        heatmap[r][width - 1] = depth;
+    }
+}

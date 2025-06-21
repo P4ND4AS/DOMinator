@@ -16,12 +16,16 @@ public:
 
     void initialize_book();
     void print_book_history() const;
+    const BookSnapshot& getCurrentBook() const { return currentBook; }
     LimitOrder addLimitOrder();
     void setInitialLiquidity(int n_orders);
     MarketOrder generateMarketOrder();
     void processMarketOrder(const MarketOrder& order);
     void modifyLiquidity();
     void update(int n_iter);
+
+    void createHeatMap(const BookSnapshot& snapshot, std::vector<std::vector<float>>& heatmap, int height, int width);
+
 
 
 private:

@@ -9,26 +9,11 @@
 #include <GLFW/glfw3.h>
 #include <thread>
 
-// Dans main(), avant la boucle de rendu
-const int matrixSize = 10;
-// Fonction pour générer des données aléatoires (simule un marché)
-void generateRandomHeatmap(float data[matrixSize][matrixSize]) {
-    for (int i = 0; i < matrixSize; ++i) {
-        for (int j = 0; j < matrixSize; ++j) {
-            // Simule des clusters (comme des ordres groupés)
-            data[i][j] = static_cast<float>(rand()) / RAND_MAX;
 
-            // Ajoute un peu de bruit (spread)
-            if (i > 0 && j > 0) {
-                data[i][j] = 0.5f * (data[i - 1][j] + data[i][j - 1]) + 0.2f * (rand() / RAND_MAX);
-            }
-        }
-    }
-}
 
 int main() {
     //SetConsoleOutputCP(CP_UTF8);
-    /*std::cout << "Création OrderBook..." << std::endl;
+    std::cout << "Création OrderBook..." << std::endl;
     OrderBook ob;
     std::cout << "Ajout liquidité initiale..." << std::endl;
     ob.setInitialLiquidity(500);
@@ -44,9 +29,6 @@ int main() {
     double duration_sec = duration_micro / 1e6;
 
     std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
-
-    system("pause");
-    return 0;*/
 
 
     // 1. Initialisation GLFW
@@ -82,25 +64,49 @@ int main() {
     Quad renderQuad;
 
 
+    int rows = 100;
+    int cols = 500;
+    std::vector<std::vector<float>> heatmap(rows, std::vector<float>(cols, 0.0f));
 
-    float heatmapData[matrixSize][matrixSize] = { 0 };
+
+    GLuint heatmapTex;
+    glGenTextures(1, &heatmapTex);
+    glBindTexture(GL_TEXTURE_2D, heatmapTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cols, rows, 0, GL_RED, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     while (!glfwWindowShouldClose(window)) {
-        generateRandomHeatmap(heatmapData);
+        ob.update(1);
+        ob.createHeatMap(ob.getCurrentBook(), heatmap, rows, cols);
+
+        std::vector<float> flatHeatmap;
+        flatHeatmap.reserve(rows * cols);
+        for (int r = 0; r < rows; ++r)
+            for (int c = 0; c < cols; ++c)
+                flatHeatmap.push_back(heatmap[r][c]);
+
         // Nettoyage de l'écran
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-        // Active le programme shader
+        // Met à jour la texture heatmap
+        glBindTexture(GL_TEXTURE_2D, heatmapTex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RED, GL_FLOAT, flatHeatmap.data());
+
+        // Active le shader et la texture pour le rendu
         shader.use();
-        shader.setFloatArray("heatmap", &heatmapData[0][0], matrixSize * matrixSize);
-        shader.setInt("size", matrixSize);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, heatmapTex);
+        shader.setInt("heatmap", 0);
 
         glClear(GL_COLOR_BUFFER_BIT);
         renderQuad.render();
+
         // Échange les buffers et gère les événements
         glfwSwapBuffers(window);
         glfwPollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // 10 FPS
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     renderQuad.~Quad();
