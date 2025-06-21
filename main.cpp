@@ -9,15 +9,13 @@ int main() {
     std::cout << "Création OrderBook..." << std::endl;
     OrderBook ob;
     std::cout << "Ajout liquidité initiale..." << std::endl;
-    ob.setInitialLiquidity(15);
+    ob.setInitialLiquidity(500);
 
-    const int n_iter = 10;
+    const int n_iter = 1000000;
     std::cout << "Début simulation..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
     ob.update(n_iter);
-
-    ob.print_book_history();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration_micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();

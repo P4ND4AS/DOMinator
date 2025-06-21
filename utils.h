@@ -8,3 +8,8 @@ inline const char* sideToString(Side side) {
     default: return "UNKNOWN";
     }
 }
+
+
+bool isPriceInRange(double price, double minPrice, double maxPrice) {
+    return price >= minPrice && price <= maxPrice;
+}

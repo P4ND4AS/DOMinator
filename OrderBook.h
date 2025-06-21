@@ -12,7 +12,7 @@ struct BookSnapshot {
 
 class OrderBook {
 public:
-    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 6, double ticksize = 0.25);
+    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 400, double ticksize = 0.25);
 
     void initialize_book();
     void print_book_history() const;
@@ -32,7 +32,7 @@ private:
     int orderIndex;
 
 
-    std::chrono::system_clock::time_point currentTime;
+    int64_t currentTime;
     std::chrono::system_clock::time_point initStartTime();
     std::string formatTimestamp(const std::chrono::system_clock::time_point& tp) const;
     std::vector<double> prices;
@@ -44,8 +44,11 @@ private:
     double currentBestBid = initialPrice - ticksize;
     double currentBestAsk = initialPrice + ticksize;
 
+    double minPrice = initialPrice - depth * ticksize;
+    double maxPrice = initialPrice + depth * ticksize;
+
     std::vector<double> bestBids;
     std::vector<double> bestAsks;
 
-    std::map<std::string, BookSnapshot> bookHistory;
+    std::map<int64_t, BookSnapshot> bookHistory;
 };

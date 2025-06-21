@@ -5,13 +5,14 @@
 #include <string>
 #include <chrono>
 #include <optional>
+#include <cstdint>
 
 
 enum class Side { BID, ASK };
 
 struct LimitOrder {
 	uint64_t id;
-	std::string timestamp;
+	int64_t timestamp;
 	double price;
 	int size;
 	Side side;
@@ -21,7 +22,7 @@ struct LimitOrder {
 
 
 struct MarketOrder {
-	std::string timestamp;
+	int64_t timestamp;
 	Side side;
 	int size;
 };
