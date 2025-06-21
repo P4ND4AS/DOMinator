@@ -143,8 +143,6 @@ LimitOrder OrderBook::addLimitOrder() {
     int size = size_dist(gen);
 
     double price;
-
-
     // Calcul les niveaux de prix valides
     std::vector<double> valid_prices;
     for (double p : prices) {
@@ -175,10 +173,8 @@ LimitOrder OrderBook::addLimitOrder() {
 
 
 
-
-
 void OrderBook::modifyLiquidity() {
-    //std::cout << "Modify liquidity...\n";
+    std::cout << "Modify liquidity...\n";
     if (currentBook.prices.empty()) return;
 
     std::random_device rd;
@@ -187,7 +183,7 @@ void OrderBook::modifyLiquidity() {
     double randomPrice = prices[price_dist(gen)];
 
     auto& listOfOrders = currentBook.prices[randomPrice];
-    //std::cout << "Modifying orders at price: " << randomPrice << "\n";
+    std::cout << "Modifying orders at price: " << randomPrice << "\n";
     if (!listOfOrders.empty()) {
         // Sélection d'un ordre au hasard dans la liste
         std::uniform_int_distribution<> order_dist(0, static_cast<int>(listOfOrders.size())- 1);
@@ -200,7 +196,7 @@ void OrderBook::modifyLiquidity() {
 
         switch (decision) {
         case 0: { // CANCEL
-            //std::cout << "Cancelling order ID: " << randomOrder.id << "\n";
+            std::cout << "Cancelling order ID: " << randomOrder.id << "\n";
             listOfOrders.erase(listOfOrders.begin() + randomIndex);
             break;
         }
@@ -213,26 +209,26 @@ void OrderBook::modifyLiquidity() {
 
             if (flip(gen)) {
                 randomOrder.size -= delta;
-                //std::cout << "Decreased size of order ID: " << randomOrder.id << " to " << randomOrder.size << "\n";
+                std::cout << "Decreased size of order ID: " << randomOrder.id << " to " << randomOrder.size << "\n";
                 if (randomOrder.size <= 0) {
-                    //std::cout << "Order size <= 0. Removing order\n";
+                    std::cout << "Order size <= 0. Removing order\n";
                     listOfOrders.erase(listOfOrders.begin() + randomIndex);
                 }
             }
             else {
                 randomOrder.size += delta;
-                //std::cout << "Increased size of order ID: "<<randomOrder.id<<" to "<<randomOrder.size<<"\n";
+                std::cout << "Increased size of order ID: "<<randomOrder.id<<" to "<<randomOrder.size<<"\n";
             }
             break;
         }
 
         case 2: {
-            //std::cout << "Holding order ID: "<<randomOrder.id<<" (unchanged)\n";
+            std::cout << "Holding order ID: "<<randomOrder.id<<" (unchanged)\n";
             break;
         }
         }
     }
-    //std::cout<<">>> modifyLiquidity() completed.\n";
+    std::cout<<">>> modifyLiquidity() completed.\n";
 }
 
 
@@ -256,18 +252,17 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 
     int priceMultiplier = (side == Side::ASK) ? 1 : -1;
     double startPrice = (side == Side::ASK ) ? currentBestAsk : currentBestBid;
-    //std::cout << "StartPrice: " << startPrice << "\n";
+    std::cout << "StartPrice: " << startPrice << "\n";
 
     int sumVolumes = 0;
 
     while (sumVolumes < size) {
         auto listOfOrders = currentBook.prices[startPrice];
-        int j = 0;
-        while (listOfOrders.empty() && j < 100) {
-            //std::cout << "Pas de liquidité à: " << startPrice << "\n";
+        
+        while (listOfOrders.empty()) {
+            std::cout << "Pas de liquidité à: " << startPrice << "\n";
             startPrice += priceMultiplier * ticksize;
             listOfOrders = currentBook.prices[startPrice];
-            j++;
         }
 
         auto limitOrder = listOfOrders.front();
@@ -279,19 +274,18 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
             listOfOrders.erase(listOfOrders.begin());
             currentBook.prices[startPrice] = listOfOrders;
             if (sumVolumes == size) {
-                //std::cout << "Size=sumVolumes" << "\n";
+                std::cout << "Size=sumVolumes" << "\n";
                 currentBook.last_price = startPrice;
                 currentBook.last_side = side;
                 // Ici, comme il se peut qu'il n'y ait de liquidité sur 'startPrice', on doit
                 // trouver la liquidité la plus proche.
                 auto remainingOrders = currentBook.prices[startPrice]; // Pas de '&' car on ne veut pas modifier
-                // le 'currentBook'.
-                int max_iter = 0;
-                while (remainingOrders.empty() && max_iter < 100) {
-                    //std::cout << "Pas d'ordre à :" << startPrice << "\n";
+                                                                       // le 'currentBook'.
+            
+                while (remainingOrders.empty()) {
+                    std::cout << "Pas d'ordre à :" << startPrice << "\n";
                     startPrice += priceMultiplier * ticksize;
                     remainingOrders = currentBook.prices[startPrice];
-                    max_iter++;
                 }
                 if (side == Side::ASK) {
                     currentBestAsk = startPrice;
@@ -321,39 +315,39 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 void OrderBook::update(int n_iter) {
 
     for (int i = 0; i < n_iter; ++i) {
-        //std::cout << "\nItération n°"<< i << "\n";
+        std::cout << "\nItération n°"<< i << "\n";
 
         currentTime += std::chrono::microseconds(timestep);
         std::string timestamp_str = formatTimestamp(currentTime);
 
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        std::discrete_distribution<> event_dist({ 0.43, 0.55, 0.02 });
+        std::discrete_distribution<> event_dist({ 0.33, 0.3, 0.33 });
         int eventType = event_dist(gen);
 
         if (eventType == 0) {
             // ADD LIMIT ORDER
             LimitOrder limitOrder = addLimitOrder();
             currentBook.prices[limitOrder.price].push_back(limitOrder);
-            //std::cout << "Ordre limite ajouté" << "\n";
+            std::cout << "Ordre limite ajout à: " << limitOrder.price << ", size: " << limitOrder.size << " au " << sideToString(limitOrder.side) << "\n";
         }
         else if (eventType == 1) {
             modifyLiquidity();
         }
         else {
             MarketOrder marketOrder = generateMarketOrder();
-            //std::cout << "Market order generated: side=" << marketOrder.side << ", size=" << marketOrder.size << ", timestamp=" << marketOrder.timestamp << "\n";
+            std::cout << "Market order generated: side=" << sideToString(marketOrder.side) << ", size=" << marketOrder.size << ", timestamp=" << marketOrder.timestamp << "\n";
             processMarketOrder(marketOrder);
 
         }
 
-        //bookHistory[timestamp_str] = currentBook;
+        bookHistory[timestamp_str] = currentBook;
         bestAsks.push_back(currentBestAsk);
         bestBids.push_back(currentBestBid);
 
-        //std::cout << "BestBid: " << bestBids.back() << "\nand BestAsk: " << bestAsks.back() << '\n';
+        std::cout << "BestBid: " << bestBids.back() << "\nand BestAsk: " << bestAsks.back() << '\n';
 
-        //std::cout << "\n";
+        std::cout << "\n";
     }
 }
 

@@ -12,7 +12,7 @@ struct BookSnapshot {
 
 class OrderBook {
 public:
-    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 160, double ticksize = 0.25);
+    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 6, double ticksize = 0.25);
 
     void initialize_book();
     void print_book_history() const;
