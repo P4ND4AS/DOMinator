@@ -143,12 +143,23 @@ LimitOrder OrderBook::addLimitOrder() {
     double price;
     // Calcul les niveaux de prix valides
     std::vector<double> valid_prices;
-    for (double p : prices) {
-        if ((side == Side::BID && p < currentBestAsk) ||
-            (side == Side::ASK && p > currentBestBid)) {
+    valid_prices.reserve(2*depth+1);
+
+    if (side == Side::BID) {
+        double p = initialPrice - depth * ticksize;
+        while (p < currentBestAsk) {
             valid_prices.push_back(p);
+            p += ticksize;
         }
     }
+    else {
+        double p = initialPrice + depth * ticksize;
+        while (p > currentBestBid) {
+            valid_prices.push_back(p);
+            p -= ticksize;
+        }
+    }
+
 
     if (valid_prices.empty()) {
         throw std::runtime_error("No valid price levels available for limit order");
