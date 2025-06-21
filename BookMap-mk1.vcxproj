@@ -130,6 +130,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OrderBook.cpp" />
+    <ClCompile Include="src\geometry\Quad.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\shaders\Shader.cpp" />
   </ItemGroup>

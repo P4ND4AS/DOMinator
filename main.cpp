@@ -1,10 +1,30 @@
 #include "OrderBook.h"
+#include "include/Shader.h"
+#include "src/geometry/Quad.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
 #include <chrono>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <thread>
+
+// Dans main(), avant la boucle de rendu
+const int matrixSize = 10;
+// Fonction pour générer des données aléatoires (simule un marché)
+void generateRandomHeatmap(float data[matrixSize][matrixSize]) {
+    for (int i = 0; i < matrixSize; ++i) {
+        for (int j = 0; j < matrixSize; ++j) {
+            // Simule des clusters (comme des ordres groupés)
+            data[i][j] = static_cast<float>(rand()) / RAND_MAX;
+
+            // Ajoute un peu de bruit (spread)
+            if (i > 0 && j > 0) {
+                data[i][j] = 0.5f * (data[i - 1][j] + data[i][j - 1]) + 0.2f * (rand() / RAND_MAX);
+            }
+        }
+    }
+}
 
 int main() {
     //SetConsoleOutputCP(CP_UTF8);
@@ -29,42 +49,64 @@ int main() {
     return 0;*/
 
 
-    // Initialisation de GLFW
+    // 1. Initialisation GLFW
     if (!glfwInit()) {
-        std::cerr << "Erreur lors de l'initialisation de GLFW" << std::endl;
+        std::cerr << "Échec de l'initialisation de GLFW" << std::endl;
         return -1;
     }
+    // Configuration GLFW (OpenGL 3.3 Core)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Création de la fenêtre
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Fenetre OpenGL", nullptr, nullptr);
+    // 2. Création de la fenêtre
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Bookmap Visualizer", NULL, NULL);
     if (!window) {
-        std::cerr << "Erreur lors de la création de la fenêtre" << std::endl;
+        std::cerr << "Échec de la création de la fenêtre GLFW" << std::endl;
         glfwTerminate();
         return -1;
     }
-
     glfwMakeContextCurrent(window);
 
-    // Initialisation de GLAD
+    // 3. Initialisation GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Erreur lors de l'initialisation de GLAD" << std::endl;
-        glfwDestroyWindow(window);
+        std::cerr << "Échec de l'initialisation de GLAD" << std::endl;
         glfwTerminate();
         return -1;
     }
+    glViewport(0, 0, 800, 600);
 
-    // Boucle d'affichage simple
+
+    Shader shader("src/shaders/shader.vert", "src/shaders/shader.frag");
+
+    Quad renderQuad;
+
+
+
+    float heatmapData[matrixSize][matrixSize] = { 0 };
+
     while (!glfwWindowShouldClose(window)) {
-        glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        generateRandomHeatmap(heatmapData);
+        // Nettoyage de l'écran
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
+        // Active le programme shader
+        shader.use();
+        shader.setFloatArray("heatmap", &heatmapData[0][0], matrixSize * matrixSize);
+        shader.setInt("size", matrixSize);
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        renderQuad.render();
+        // Échange les buffers et gère les événements
         glfwSwapBuffers(window);
         glfwPollEvents();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // 10 FPS
     }
 
-    glfwDestroyWindow(window);
+    renderQuad.~Quad();
+    shader.~Shader();
     glfwTerminate();
-
     return 0;
+
 
 }
