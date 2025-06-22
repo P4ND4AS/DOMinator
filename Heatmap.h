@@ -13,7 +13,7 @@ public:
 	std::vector<std::vector<float>> data;
 
 	//Pour la ligne du trait de 'last_price' par colonne
-	std::vector<int> last_price_row_history;
+	std::vector<float> last_price_row_history;
 	GLuint last_price_textureID;
 
 	double min_price, max_price; // Limites de prix à afficher sur l'écran

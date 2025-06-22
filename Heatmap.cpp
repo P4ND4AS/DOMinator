@@ -5,9 +5,11 @@
 
 Heatmap::Heatmap(int r, int c, double min_p, double max_p) 
 	: rows(r), cols(c), data(r, std::vector<float>(c, 0.0f)),
-	  last_price_row_history(c, 0), min_price(min_p), max_price(max_p) 
+	  last_price_row_history(c, 0.0f), 
+	  min_price(min_p), max_price(max_p)
 {
 	createTexture();
+	createLastPriceTexture();
 }
 
 Heatmap::~Heatmap() {
@@ -56,22 +58,26 @@ void Heatmap::uploadToTexture() {
 
 // -------- Création et upload de la texture 1D (ligne du prix) --------
 void Heatmap::createLastPriceTexture() {
+	// Suppose: last_price_row_history contient la ligne du trait pour chaque colonne (taille = cols)
+	std::vector<float> normed(cols);
+	for (int c = 0; c < cols; ++c) {
+		// Normalise la ligne du trait entre 0 et 1
+		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
+	}
+
 	glGenTextures(1, &last_price_textureID);
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	// Initialise avec des zéros (ligne non affichée au début)
-	std::vector<float> zeros(cols, 0.0f);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, cols, 0, GL_RED, GL_FLOAT, zeros.data());
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_R32F, cols, 0, GL_RED, GL_FLOAT, normed.data());
 }
 
-// Envoie le vecteur des lignes du trait (normalisé [0,1]) à la texture 1D
 void Heatmap::uploadLastPriceTexture() {
-	std::vector<float> normed(cols, 0.0f);
+	std::vector<float> normed(cols);
 	for (int c = 0; c < cols; ++c) {
 		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
 	}
+
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, cols, GL_RED, GL_FLOAT, normed.data());
 }
@@ -127,7 +133,7 @@ void Heatmap::render(const Shader& shader, const Quad& quad) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, last_price_textureID);
+	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
 
 	shader.use();
 	shader.setInt("heatmap", 0);

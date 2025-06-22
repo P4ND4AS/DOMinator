@@ -63,7 +63,7 @@ int main() {
 
     Quad renderQuad;
 
-    Heatmap heatmap(41, 320, 19995.00, 20005.00);
+    Heatmap heatmap(41, 160, 19995.00, 20005.00);
 
 
     while (!glfwWindowShouldClose(window)) {
@@ -77,9 +77,9 @@ int main() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
      
-        ob.update(100);
+        ob.update(1);
     }
 
     renderQuad.~Quad();
