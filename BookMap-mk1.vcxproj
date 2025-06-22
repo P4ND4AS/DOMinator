@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Heatmap.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OrderBook.cpp" />
     <ClCompile Include="src\geometry\Quad.cpp" />
@@ -135,6 +136,7 @@
     <ClCompile Include="src\shaders\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Heatmap.h" />
     <ClInclude Include="include\glad\glad.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="Order.h" />

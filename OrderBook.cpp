@@ -136,7 +136,7 @@ LimitOrder OrderBook::addLimitOrder() {
     static std::mt19937 gen(rd());
 
     std::uniform_int_distribution<> side_dist(0, 1);
-    std::uniform_int_distribution<> size_dist(10, 15);
+    std::uniform_int_distribution<> size_dist(1, 3);
     Side side = (side_dist(gen) == 0) ? Side::BID : Side::ASK;
     int size = size_dist(gen);
 
@@ -363,26 +363,5 @@ void OrderBook::update(int n_iter) {
 
         //std::cout << "BestBid: " << bestBids.back() << "\nand BestAsk: " << bestAsks.back() << '\n';
         //std::cout << "\n";
-    }
-}
-
-
-void OrderBook::createHeatMap(const BookSnapshot& snapshot, std::vector<std::vector<float>>& heatmap, int height, int width) {
-    for (int r = 0; r < height; ++r) {
-        for (int c = 0; c < width; ++c) {
-            heatmap[r][c] = heatmap[r][c + 1];
-        }
-    }
-
-    double min_price = initialPrice - (height / 2);
-    for (int r = 0; r < height; ++r) {
-        double price_level = min_price + r;
-        float volume = 0.0f;
-
-        auto listOfOrders = currentBook.prices[price_level];
-        for (auto order : listOfOrders) {
-            depth += order.size;
-        }
-        heatmap[r][width - 1] = depth;
     }
 }

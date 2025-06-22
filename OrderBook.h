@@ -12,7 +12,7 @@ struct BookSnapshot {
 
 class OrderBook {
 public:
-    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 400, double ticksize = 0.25);
+    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 80, double ticksize = 0.25);
 
     void initialize_book();
     void print_book_history() const;
@@ -23,10 +23,6 @@ public:
     void processMarketOrder(const MarketOrder& order);
     void modifyLiquidity();
     void update(int n_iter);
-
-    void createHeatMap(const BookSnapshot& snapshot, std::vector<std::vector<float>>& heatmap, int height, int width);
-
-
 
 private:
     double initialPrice;
