@@ -12,7 +12,13 @@ public:
 	int rows, cols;
 	std::vector<std::vector<float>> data;
 
-	Heatmap(int r, int c);
+	//Pour la ligne du trait de 'last_price' par colonne
+	std::vector<int> last_price_row_history;
+	GLuint last_price_textureID;
+
+	double min_price, max_price; // Limites de prix à afficher sur l'écran
+
+	Heatmap(int r, int c, double min_p, double max_p);
 
 	void printHeatMap() const;
 
@@ -25,12 +31,17 @@ public:
 	int getCols() const { return cols; }
 	GLuint getTexture() const { return textureID;  }
 
+	int price_to_row(double price) const;
+
 private:
 
 	GLuint textureID;
 
 	void createTexture();
 	void uploadToTexture();
+	void createLastPriceTexture();
+	void uploadLastPriceTexture();
+
 	void scrollLeft();
 	void fillLastColumn(const BookSnapshot& snapshot);
 };

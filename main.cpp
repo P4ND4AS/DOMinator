@@ -16,7 +16,7 @@ int main() {
     std::cout << "Création OrderBook..." << std::endl;
     OrderBook ob;
     std::cout << "Ajout liquidité initiale..." << std::endl;
-    //ob.setInitialLiquidity(500);
+    ob.setInitialLiquidity(500);
 
     const int n_iter = 100000;
     std::cout << "Début simulation..." << std::endl;
@@ -63,21 +63,23 @@ int main() {
 
     Quad renderQuad;
 
-    Heatmap heatmap(10, 10);
+    Heatmap heatmap(60, 320, 19985.00, 20015.00);
 
 
     while (!glfwWindowShouldClose(window)) {
-        //ob.update(100);
+        
         BookSnapshot snapshot = ob.getCurrentBook();
         heatmap.update(snapshot);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         heatmap.render(shader, renderQuad);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        heatmap.printHeatMap();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::cout << "Last price: " << snapshot.last_price << "\n";
+        ob.update(100);
     }
 
     renderQuad.~Quad();

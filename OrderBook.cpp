@@ -136,7 +136,7 @@ LimitOrder OrderBook::addLimitOrder() {
     static std::mt19937 gen(rd());
 
     std::uniform_int_distribution<> side_dist(0, 1);
-    std::uniform_int_distribution<> size_dist(1, 3);
+    std::uniform_int_distribution<> size_dist(5, 15);
     Side side = (side_dist(gen) == 0) ? Side::BID : Side::ASK;
     int size = size_dist(gen);
 

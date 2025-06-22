@@ -1,6 +1,10 @@
 #version 330 core
 
 uniform sampler2D heatmap;
+uniform sampler1D last_price_line;
+uniform int cols;
+uniform int rows; 
+
 in vec2 fragUV;
 out vec4 FragColor;
 
@@ -28,14 +32,28 @@ vec3 heatPalette(float x) {
     return mix(colors[idx0], colors[idx1], t);
 }
 
+
 void main() {
-    float value = texture(heatmap, fragUV).r;
+    vec2 uv = fragUV;
+    float value = texture(heatmap, uv).r;
 
-    // Normalisation : 0 = pas de liquidité, 100 = max (ajuste si besoin)
-    float norm = clamp(value / 100 , 0.0, 1.0);
+    // Récupère la colonne courante (attention à arrondir correctement)
+    int col = int(uv.x * float(cols - 1) + 0.5);
+    float trait_y = texture(last_price_line, float(col) / float(cols - 1)).r;
 
-    // Palette non-linéaire pour mieux voir les petites valeurs
-    //norm = pow(norm, 0.25); // ou norm = pow(norm, 0.5);
+    // Proche de la ligne du trait ? (tolérance d'un demi pixel)
+    float y = 1.0 - uv.y;
+    float dist = abs(y - trait_y);
 
-    FragColor = vec4(norm, 0.0, 0.0, 1.0);
+    if (dist < (0.5 / float(rows))) {
+        FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    } else {
+        // Normalisation
+        float value = texture(heatmap, uv).r;
+        float norm = clamp(value / 1000 , 0.0, 1.0);
+
+        // Palette non-linéaire pour mieux voir les petites valeurs
+        norm = pow(norm, 0.7);
+        FragColor = vec4(heatPalette(norm), 1.0);
+    }
 }
