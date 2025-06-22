@@ -37,23 +37,20 @@ void main() {
     vec2 uv = fragUV;
     float value = texture(heatmap, uv).r;
 
-    // Récupère la colonne courante (attention à arrondir correctement)
-    int col = int(uv.x * float(cols - 1) + 0.5);
-    float trait_y = texture(last_price_line, float(col) / float(cols - 1)).r;
+    int col = int(fragUV.x * float(cols));
+    col = clamp(col, 0, cols - 1);
+    float trait_y = texture(last_price_line, float(col)/float(cols)).r;
 
-    // Proche de la ligne du trait ? (tolérance d'un demi pixel)
-    float y = 1.0 - uv.y;
-    float dist = abs(y - trait_y);
 
-    if (dist < (0.5 / float(rows))) {
-        FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+    
+
+    if (true) {
+        FragColor = vec4(trait_y, trait_y, trait_y, 1.0); // blanc
     } else {
-        // Normalisation
-        float value = texture(heatmap, uv).r;
         float norm = clamp(value / 1000 , 0.0, 1.0);
-
-        // Palette non-linéaire pour mieux voir les petites valeurs
         norm = pow(norm, 0.7);
+    
         FragColor = vec4(heatPalette(norm), 1.0);
     }
 }

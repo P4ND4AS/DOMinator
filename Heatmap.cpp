@@ -70,8 +70,7 @@ void Heatmap::createLastPriceTexture() {
 void Heatmap::uploadLastPriceTexture() {
 	std::vector<float> normed(cols, 0.0f);
 	for (int c = 0; c < cols; ++c) {
-		//rows-1 pour que 0 = bas, 1 = haut
-		normed[c] = 1.0f - float(last_price_row_history[c]) / float(rows - 1);
+		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
 	}
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, cols, GL_RED, GL_FLOAT, normed.data());
@@ -84,9 +83,8 @@ void Heatmap::scrollLeft() {
 		for (int c = 0; c < cols - 1; ++c)
 			data[r][c] = data[r][c + 1];
 
-	for (int c = 0; c < cols - 1; ++c) {
+	for (int c = 0; c < cols - 1; ++c)
 		last_price_row_history[c] = last_price_row_history[c + 1];
-	}
 }
 
 void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
@@ -108,7 +106,6 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 
 // Convertit le prix en numéro de ligne
 int Heatmap::price_to_row(double price) const {
-
 	double norm = (price - min_price) / (max_price - min_price);
 	int row = rows - 1 - static_cast<int>(norm * (rows - 1));
 	return std::clamp(row, 0, rows - 1);
@@ -121,6 +118,7 @@ void Heatmap::update(const BookSnapshot& snapshot) {
 	fillLastColumn(snapshot);
 	int row = price_to_row(snapshot.last_price);
 	last_price_row_history[cols - 1] = row;
+	//std::cout << "Ligne du last_price dans la matrice : " << row<<"\n";
 	uploadToTexture();
 	uploadLastPriceTexture();
 }
@@ -129,7 +127,7 @@ void Heatmap::render(const Shader& shader, const Quad& quad) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
+	glBindTexture(GL_TEXTURE_2D, last_price_textureID);
 
 	shader.use();
 	shader.setInt("heatmap", 0);

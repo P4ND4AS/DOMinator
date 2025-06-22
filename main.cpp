@@ -63,7 +63,7 @@ int main() {
 
     Quad renderQuad;
 
-    Heatmap heatmap(60, 320, 19985.00, 20015.00);
+    Heatmap heatmap(41, 320, 19995.00, 20005.00);
 
 
     while (!glfwWindowShouldClose(window)) {
@@ -78,7 +78,7 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        std::cout << "Last price: " << snapshot.last_price << "\n";
+     
         ob.update(100);
     }
 
