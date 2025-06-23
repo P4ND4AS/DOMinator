@@ -352,7 +352,7 @@ void OrderBook::update(int n_iter) {
 
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        std::discrete_distribution<> event_dist({ 0.005, 0.005, 0.0004, 0.9896 });
+        std::discrete_distribution<> event_dist({ 0.005, 0.005, 0.0001, 0.9896 });
         int eventType = event_dist(gen);
 
         if (eventType == 0) {

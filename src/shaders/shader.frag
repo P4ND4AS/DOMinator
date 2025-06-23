@@ -35,19 +35,38 @@ vec3 heatPalette(float x) {
 void main() {
     vec2 uv = fragUV;
 
-    int col = int(fragUV.x * float(cols));
-    col = clamp(col, 0, cols - 1);
+    int col = int(uv.x * float(cols));
+    col = clamp(col, 0, cols-1);
+    float rowA = texture(last_price_line, float(col) / float(cols)).r;
+    float rowB = texture(last_price_line, float(col-1) / float(cols)).r;
+
+    float minRow = min(rowA, rowB);
+    float maxRow = max(rowA, rowB);
+
+    float distA = abs(maxRow - uv.y);
+    float distB = (uv.y - minRow);
+
 
     float trait_y = texture(last_price_line, float(col) / float(cols)).r;
     float dist = abs(uv.y - trait_y);
 
+
+    //if (distB < 0.5 / float(300) || distA < 0.5 / float(300)) {
+    //    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    //}
+
+
+
+
     if (dist < 0.5 / float(300)) {
         FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    } else {
+    } 
+    
+    else {
         float value = texture(heatmap, uv).r;
         float norm = clamp(value / 100 , 0.0, 1.0);
         norm = pow(norm, 1.0); 
-
+    
         FragColor = vec4(heatPalette(norm), 1.0);
     }
 }
