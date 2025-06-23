@@ -1,12 +1,16 @@
 #include "OrderBook.h"
 #include "utils.h"
+#include <algorithm>
+#include <cstdint>
 #include <vector>
 #include <cmath>
+
 #include <iostream>
 #include <random>
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+
 
 std::chrono::system_clock::time_point OrderBook::initStartTime() {
     std::tm tm = {};
@@ -136,7 +140,7 @@ LimitOrder OrderBook::addLimitOrder() {
     static std::mt19937 gen(rd());
 
     std::uniform_int_distribution<> side_dist(0, 1);
-    std::uniform_int_distribution<> size_dist(5, 15);
+    std::uniform_int_distribution<> size_dist(1, 2);
     Side side = (side_dist(gen) == 0) ? Side::BID : Side::ASK;
     int size = size_dist(gen);
 
@@ -146,28 +150,38 @@ LimitOrder OrderBook::addLimitOrder() {
     valid_prices.reserve(2*depth+1);
 
     if (side == Side::BID) {
-        double p = initialPrice - depth * ticksize;
-        while (p < currentBestAsk) {
-            valid_prices.push_back(p);
-            p += ticksize;
-        }
-    }
-    else {
-        double p = initialPrice + depth * ticksize;
-        while (p > currentBestBid) {
+        double p = currentBestAsk - ticksize;
+        while (p > minPrice) {
             valid_prices.push_back(p);
             p -= ticksize;
         }
     }
-
+    else {
+        double p = currentBestBid + ticksize;
+        while (p < maxPrice) {
+            valid_prices.push_back(p);
+            p += ticksize;
+        }
+    }
 
     if (valid_prices.empty()) {
+        std::cout<<"Side: " << sideToString(side) << "\n";
         throw std::runtime_error("No valid price levels available for limit order");
     }
 
     std::uniform_int_distribution<> price_index_dist(0, static_cast<int>(valid_prices.size()) - 1);;
     price = valid_prices[price_index_dist(gen)];
 
+    //std::exponential_distribution<> price_index_dist(0.1);
+    //int indexPriceSelected = std::clamp(int(price_index_dist(gen)), 0, int(valid_prices.size()-1));
+    //price = valid_prices[int(price_index_dist(gen))];
+
+    if (side == Side::BID && price > currentBestBid) {
+        currentBestBid = price;
+    }
+    if(side == Side::ASK && price < currentBestAsk) {
+        currentBestAsk = price;
+    }
 
     LimitOrder order;
     order.id = orderIndex;
@@ -200,7 +214,7 @@ void OrderBook::modifyLiquidity() {
         auto& randomOrder = listOfOrders[randomIndex];
 
         // Décision aléatoire : cancel, volume_change, hold
-        std::discrete_distribution<> decision_dist({ 0.5, 0.35, 0.15 });
+        std::discrete_distribution<> decision_dist({ 0.9, 0.05, 0.05 });
         int decision = decision_dist(gen);
 
         switch (decision) {
@@ -338,7 +352,7 @@ void OrderBook::update(int n_iter) {
 
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        std::discrete_distribution<> event_dist({ 0.43, 0.55, 0.02 });
+        std::discrete_distribution<> event_dist({ 0.005, 0.005, 0.0004, 0.9896 });
         int eventType = event_dist(gen);
 
         if (eventType == 0) {
@@ -350,7 +364,7 @@ void OrderBook::update(int n_iter) {
         else if (eventType == 1) {
             modifyLiquidity();
         }
-        else {
+        else if (eventType == 2) {
             MarketOrder marketOrder = generateMarketOrder();
             //std::cout << "Market order generated: side=" << sideToString(marketOrder.side) << ", size=" << marketOrder.size << ", timestamp=" << marketOrder.timestamp << "\n";
             processMarketOrder(marketOrder);
@@ -358,8 +372,8 @@ void OrderBook::update(int n_iter) {
         }
 
         //bookHistory[currentTime] = currentBook;
-        bestAsks.push_back(currentBestAsk);
-        bestBids.push_back(currentBestBid);
+        //bestAsks.push_back(currentBestAsk);
+        //bestBids.push_back(currentBestBid);
 
         //std::cout << "BestBid: " << bestBids.back() << "\nand BestAsk: " << bestAsks.back() << '\n';
         //std::cout << "\n";

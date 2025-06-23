@@ -18,7 +18,7 @@ int main() {
     std::cout << "Ajout liquidité initiale..." << std::endl;
     ob.setInitialLiquidity(500);
 
-    const int n_iter = 100000;
+    const int n_iter = 10000;
     std::cout << "Début simulation..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -63,7 +63,7 @@ int main() {
 
     Quad renderQuad;
 
-    Heatmap heatmap(41, 160, 19995.00, 20005.00);
+    Heatmap heatmap(121, 640, 19985.00, 20015.00);
 
 
     while (!glfwWindowShouldClose(window)) {
@@ -79,7 +79,9 @@ int main() {
         glfwPollEvents();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
      
-        ob.update(1);
+        ob.update(4000);
+        //double lastprice = ob.getCurrentLastPrice();
+        //std::cout << lastprice << "\n";
     }
 
     renderQuad.~Quad();
@@ -87,6 +89,9 @@ int main() {
     heatmap.~Heatmap();
     glfwTerminate();
     return 0;
+
+
+
 
 
 }

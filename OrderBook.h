@@ -12,11 +12,12 @@ struct BookSnapshot {
 
 class OrderBook {
 public:
-    OrderBook(double initialPrice = 20000.00, int timestep = 500, int depth = 80, double ticksize = 0.25);
+    OrderBook(double initialPrice = 20000.00, int timestep = 5, int depth = 60, double ticksize = 0.25);
 
     void initialize_book();
     void print_book_history() const;
     const BookSnapshot& getCurrentBook() const { return currentBook; }
+    const double& getCurrentLastPrice() const { return currentBook.last_price; }
     LimitOrder addLimitOrder();
     void setInitialLiquidity(int n_orders);
     MarketOrder generateMarketOrder();
