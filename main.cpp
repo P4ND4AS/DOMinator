@@ -63,9 +63,9 @@ int main() {
 
     Quad renderQuad;
 
-    Heatmap heatmap(121, 640, 19985.00, 20015.00);
+    Heatmap heatmap(121, 640, 19985.25, 20015.00);
 
-
+    int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         
         BookSnapshot snapshot = ob.getCurrentBook();
@@ -79,9 +79,10 @@ int main() {
         glfwPollEvents();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
      
-        ob.update(4000);
-        //double lastprice = ob.getCurrentLastPrice();
-        //std::cout << lastprice << "\n";
+        if (iter % 5 == 0) {
+            ob.update(20000);
+        }
+        iter++;
     }
 
     renderQuad.~Quad();

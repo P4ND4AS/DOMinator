@@ -36,36 +36,28 @@ void main() {
     vec2 uv = fragUV;
 
     int col = int(uv.x * float(cols));
-    col = clamp(col, 0, cols-1);
-    float rowA = texture(last_price_line, float(col) / float(cols)).r;
-    float rowB = texture(last_price_line, float(col-1) / float(cols)).r;
+    col = clamp(col, 1, cols-2);
+    float rowA = texture(last_price_line, float(col) / float(cols-1)).r;
+    float rowB = texture(last_price_line, float(col-1) / float(cols-1)).r;
 
     float minRow = min(rowA, rowB);
     float maxRow = max(rowA, rowB);
+    float eps = 1/float(600); 
 
-    float distA = abs(maxRow - uv.y);
-    float distB = (uv.y - minRow);
-
-
-    float trait_y = texture(last_price_line, float(col) / float(cols)).r;
+    float trait_y = texture(last_price_line, float(col) / float(cols-1)).r;
     float dist = abs(uv.y - trait_y);
 
 
-    //if (distB < 0.5 / float(300) || distA < 0.5 / float(300)) {
-    //    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    //}
-
-
-
-
-    if (dist < 0.5 / float(300)) {
+    if (dist < 1 / float(600)) {
         FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     } 
-    
+    if ((uv.y >= minRow - eps && uv.y <= maxRow + eps && minRow != maxRow) || dist < 1/float(600)) {
+        FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
     else {
         float value = texture(heatmap, uv).r;
-        float norm = clamp(value / 100 , 0.0, 1.0);
-        norm = pow(norm, 1.0); 
+        float norm = clamp(value / 100 , 0.0, 0.8);
+        norm = pow(norm, 1.5); 
     
         FragColor = vec4(heatPalette(norm), 1.0);
     }
