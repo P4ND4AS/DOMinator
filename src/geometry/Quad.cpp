@@ -1,12 +1,14 @@
 #include "Quad.h"
+#include "Shader.h"
+
 
 Quad::Quad() {
     float vertices[] = {
         // Positions     // UVs
-        -0.8f, -0.8f,   0.0f, 0.0f,
-        0.8f, -0.8f,   1.0f, 0.0f,
-         0.8f,  0.8f,   1.0f, 1.0f,
-        -0.8f,  0.8f,   0.0f, 1.0f
+        -1.0f, -1.0f,   0.0f, 0.0f,
+        1.0f, -1.0f,   1.0f, 0.0f,
+         1.0f,  1.0f,   1.0f, 1.0f,
+        -1.0f,  1.0f,   0.0f, 1.0f
     };
 
     unsigned int indices[] = { 0, 1, 2, 0, 2, 3 };
@@ -32,7 +34,8 @@ Quad::Quad() {
     glEnableVertexAttribArray(1);
 }
 
-void Quad::render() const {
+void Quad::render(const Shader& shader, const glm::mat4& model) const {
+    shader.setMat4("model", model); // Envoie la matrice modèle au shader
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

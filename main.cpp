@@ -10,6 +10,8 @@
 #include <thread>
 #include "Heatmap.h"
 #include <ft2build.h>
+
+
 #include FT_FREETYPE_H
 
 const unsigned int SCR_WIDTH = 800;
@@ -35,7 +37,6 @@ int main() {
     double duration_sec = duration_micro / 1e6;
 
     std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
-
 
 
     // 1. Initialisation GLFW
@@ -67,11 +68,14 @@ int main() {
 
 
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
-    Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
+    //Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
 
     Quad renderQuad;
 
     Heatmap heatmap(121, 640);
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::scale(model, glm::vec3(0.8f, 0.8f, 1.0f));
+
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
@@ -81,7 +85,7 @@ int main() {
 
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        heatmap.render(heatmapShader, renderQuad);
+        heatmap.render(heatmapShader, renderQuad, model);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -98,9 +102,4 @@ int main() {
     heatmap.~Heatmap();
     glfwTerminate();
     return 0;
-
-
-
-
-
 }

@@ -26,7 +26,7 @@ public:
 	~Heatmap();
 
 	void update(const BookSnapshot& snapshot);
-	void render(const Shader& shader, const Quad& quad);
+	void render(const Shader& shader, const Quad& quad, const glm::mat4& model);
 
 	int getRows() const { return rows; }
 	int getCols() const { return cols; }

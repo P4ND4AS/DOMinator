@@ -1,6 +1,10 @@
 #pragma once
 #include <string>
 #include <../include/glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+
 
 
 class Shader {
@@ -18,6 +22,8 @@ class Shader {
     void setFloatArray(const std::string &name, const float* values, int count) const {
         glUniform1fv(glGetUniformLocation(ID, name.c_str()), count, values);
     }
+
+    void setMat4(const std::string& name, const glm::mat4& mat) const;
 
     private:
     GLuint ID;

@@ -1,9 +1,14 @@
-layout (location = 0) in vec3 aPos;      // position vertex
-layout (location = 1) in vec2 aUV;       // uv du vertex
+#version 330 core
 
-out vec2 fragUV; // <-- pour passer à ton fragment shader
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aTexCoord;
 
-void main() {
-    gl_Position = vec4(aPos, 1.0);
-    fragUV = aUV;  // <-- passe l'UV au fragment shader
+uniform mat4 model;
+
+out vec2 fragUV;
+
+void main()
+{
+    gl_Position = model * vec4(aPos, 0.0, 1.0); // Transformation par la matrice modèle
+    fragUV = aTexCoord;
 }

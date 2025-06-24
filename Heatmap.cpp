@@ -128,7 +128,7 @@ void Heatmap::update(const BookSnapshot& snapshot) {
 	uploadLastPriceTexture();
 }
 
-void Heatmap::render(const Shader& shader, const Quad& quad) {
+void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& model) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glActiveTexture(GL_TEXTURE1);
@@ -140,5 +140,5 @@ void Heatmap::render(const Shader& shader, const Quad& quad) {
 	shader.setInt("cols", cols);
 	shader.setInt("rows", rows);
 
-	quad.render();
+	quad.render(shader, model);
 }

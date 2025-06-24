@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <glm/gtc/type_ptr.hpp>
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     // 1. Lecture des fichiers
@@ -81,4 +82,13 @@ void Shader::checkCompileErrors(GLuint shader, const std::string& type) {
             std::cerr << "ERREUR::PROGRAM::LINKING\n" << infoLog << std::endl;
         }
     }
+}
+
+void Shader::setMat4(const std::string& name, const glm::mat4& mat) const {
+    glUniformMatrix4fv(
+        glGetUniformLocation(ID, name.c_str()),
+        1,
+        GL_FALSE,
+        glm::value_ptr(mat)
+    );
 }
