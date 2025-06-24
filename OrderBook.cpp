@@ -168,13 +168,17 @@ LimitOrder OrderBook::addLimitOrder() {
         std::cout<<"Side: " << sideToString(side) << "\n";
         throw std::runtime_error("No valid price levels available for limit order");
     }
-
+    
     std::uniform_int_distribution<> price_index_dist(0, static_cast<int>(valid_prices.size()) - 1);;
     price = valid_prices[price_index_dist(gen)];
 
     //std::exponential_distribution<> price_index_dist(0.1);
     //int indexPriceSelected = std::clamp(int(price_index_dist(gen)), 0, int(valid_prices.size()-1));
-    //price = valid_prices[int(price_index_dist(gen))];
+    //if (indexPriceSelected >= valid_prices.size()) {
+    //    throw std::runtime_error("Index mauvais");
+    //}
+    
+    price = valid_prices[int(price_index_dist(gen))];
 
     if (side == Side::BID && price > currentBestBid) {
         currentBestBid = price;
@@ -260,6 +264,8 @@ MarketOrder OrderBook::generateMarketOrder() {
     static std::mt19937 gen(rd());
     static std::uniform_int_distribution<int> side_dist(0, 1);
     static std::exponential_distribution<> size_dist(1.0);
+
+    //std::discrete_distribution<> side_dist({ 0.8, 0.2});
 
     MarketOrder order;
     order.side = (side_dist(gen) == 0) ? Side::ASK : Side::BID;

@@ -74,7 +74,7 @@ void Heatmap::createLastPriceTexture() {
 void Heatmap::uploadLastPriceTexture() {
 	std::vector<float> normed(cols);
 	for (int c = 0; c < cols; ++c) {
-		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
+		normed[c] = 1 - float(last_price_row_history[c]) / float(rows - 1);
 	}
 
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);

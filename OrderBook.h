@@ -6,7 +6,7 @@ struct BookSnapshot {
     double last_price;                            // Dernier prix exécuté
     Side last_side;
 
-    BookSnapshot() : last_price(0.0), last_side(Side::BID) {}
+    BookSnapshot() : last_price(20000.00), last_side(Side::ASK) {}
 };
 
 
@@ -40,7 +40,7 @@ private:
     BookSnapshot currentBook;
 
     double lastPrice;
-    Side lastSide = Side::BID;
+    Side lastSide = Side::ASK;
 
     double currentBestBid = initialPrice - ticksize;
     double currentBestAsk = initialPrice + ticksize;

@@ -57,7 +57,7 @@ void main() {
     else {
         float value = texture(heatmap, uv).r;
         float norm = clamp(value / 100 , 0.0, 0.8);
-        norm = pow(norm, 1.5); 
+        norm = pow(norm, 0.7); 
     
         FragColor = vec4(heatPalette(norm), 1.0);
     }

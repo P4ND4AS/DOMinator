@@ -9,9 +9,13 @@
 #include <GLFW/glfw3.h>
 #include <thread>
 #include "Heatmap.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+const char* fontPath = "fonts/RobotoMono-Regular.ttf";
 
 int main() {
     //SetConsoleOutputCP(CP_UTF8);
@@ -31,6 +35,27 @@ int main() {
     double duration_sec = duration_micro / 1e6;
 
     std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
+
+
+    FT_Library ft;
+    if (FT_Init_FreeType(&ft))
+    {
+        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+        return -1;
+    }
+
+    FT_Face face;
+    if (FT_New_Face(ft, fontPath, 0, &face))
+    {
+        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+        return -1;
+    }
+    if (FT_Load_Char(face, 'X', FT_LOAD_RENDER))
+    {
+        std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+        return -1;
+    }
+
 
 
     // 1. Initialisation GLFW
