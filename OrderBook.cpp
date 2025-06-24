@@ -177,8 +177,7 @@ LimitOrder OrderBook::addLimitOrder() {
     //if (indexPriceSelected >= valid_prices.size()) {
     //    throw std::runtime_error("Index mauvais");
     //}
-    
-    price = valid_prices[int(price_index_dist(gen))];
+    //price = valid_prices[int(price_index_dist(gen))];
 
     if (side == Side::BID && price > currentBestBid) {
         currentBestBid = price;
