@@ -139,7 +139,9 @@ LimitOrder OrderBook::addLimitOrder() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<> side_dist(0, 1);
+    std::discrete_distribution<> side_dist({ 0.8, 0.2 });
+
+    //std::uniform_int_distribution<> side_dist(0, 1);
     std::uniform_int_distribution<> size_dist(1, 2);
     Side side = (side_dist(gen) == 0) ? Side::BID : Side::ASK;
     int size = size_dist(gen);
