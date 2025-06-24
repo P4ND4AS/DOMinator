@@ -37,26 +37,6 @@ int main() {
     std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
 
 
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft))
-    {
-        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
-        return -1;
-    }
-
-    FT_Face face;
-    if (FT_New_Face(ft, fontPath, 0, &face))
-    {
-        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
-        return -1;
-    }
-    if (FT_Load_Char(face, 'X', FT_LOAD_RENDER))
-    {
-        std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-        return -1;
-    }
-
-
 
     // 1. Initialisation GLFW
     if (!glfwInit()) {
@@ -86,7 +66,8 @@ int main() {
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
 
-    Shader shader("src/shaders/shader.vert", "src/shaders/shader.frag");
+    Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
+    Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
 
     Quad renderQuad;
 
@@ -100,7 +81,7 @@ int main() {
 
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        heatmap.render(shader, renderQuad);
+        heatmap.render(heatmapShader, renderQuad);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -113,7 +94,7 @@ int main() {
     }
 
     renderQuad.~Quad();
-    shader.~Shader();
+    heatmapShader.~Shader();
     heatmap.~Heatmap();
     glfwTerminate();
     return 0;

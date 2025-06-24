@@ -142,11 +142,14 @@
     <ClInclude Include="Order.h" />
     <ClInclude Include="OrderBook.h" />
     <ClInclude Include="src\geometry\Quad.h" />
+    <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\shaders\shader.frag" />
-    <None Include="src\shaders\shader.vert" />
+    <None Include="src\shaders\text.frag" />
+    <None Include="src\shaders\text.vert" />
+    <None Include="src\shaders\heatmap.frag" />
+    <None Include="src\shaders\heatmap.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

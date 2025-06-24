@@ -56,12 +56,21 @@
     <ClInclude Include="Heatmap.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
+    <ClInclude Include="TextRenderer.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\shaders\shader.frag">
+    <None Include="src\shaders\heatmap.frag">
       <Filter>Fichiers de ressources</Filter>
     </None>
-    <None Include="src\shaders\shader.vert">
+    <None Include="src\shaders\heatmap.vert">
+      <Filter>Fichiers de ressources</Filter>
+    </None>
+    <None Include="src\shaders\text.frag">
+      <Filter>Fichiers de ressources</Filter>
+    </None>
+    <None Include="src\shaders\text.vert">
       <Filter>Fichiers de ressources</Filter>
     </None>
   </ItemGroup>
