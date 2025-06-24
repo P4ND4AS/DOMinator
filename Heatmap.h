@@ -16,9 +16,10 @@ public:
 	std::vector<float> last_price_row_history;
 	GLuint last_price_textureID;
 
-	double min_price, max_price; // Limites de prix à afficher sur l'écran
+	double min_price = 20000.00 - (rows / 2) * 0.25;
+	double max_price = 20000.00 + (rows / 2) * 0.25; // Limites de prix à afficher sur l'écran
 
-	Heatmap(int r, int c, double min_p, double max_p);
+	Heatmap(int r, int c);
 
 	void printHeatMap() const;
 

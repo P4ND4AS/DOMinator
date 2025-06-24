@@ -10,6 +10,8 @@
 #include <thread>
 #include "Heatmap.h"
 
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
 
 int main() {
     //SetConsoleOutputCP(CP_UTF8);
@@ -42,7 +44,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // 2. Création de la fenêtre
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Bookmap Visualizer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Bookmap Visualizer", NULL, NULL);
     if (!window) {
         std::cerr << "Échec de la création de la fenêtre GLFW" << std::endl;
         glfwTerminate();
@@ -56,14 +58,14 @@ int main() {
         glfwTerminate();
         return -1;
     }
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
 
     Shader shader("src/shaders/shader.vert", "src/shaders/shader.frag");
 
     Quad renderQuad;
 
-    Heatmap heatmap(121, 640, 19985.25, 20015.00);
+    Heatmap heatmap(121, 640);
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {

@@ -3,10 +3,9 @@
 #include <iostream>
 #include <algorithm>
 
-Heatmap::Heatmap(int r, int c, double min_p, double max_p) 
+Heatmap::Heatmap(int r, int c) 
 	: rows(r), cols(c), data(r, std::vector<float>(c, 0.0f)),
-	  last_price_row_history(c, 0.0f), 
-	  min_price(min_p), max_price(max_p)
+	  last_price_row_history(c, 0.0f)
 {
 	createTexture();
 	createLastPriceTexture();
