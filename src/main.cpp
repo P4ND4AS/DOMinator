@@ -78,17 +78,17 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
 
 
+    Quad quad;
+    TextRenderer textRenderer(fontPath, 48);
+
     // Heatmap
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
-    Quad heatmapQuad;
     Heatmap heatmap(121, 640);
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
     // Text
     Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
-    Quad textQuad;
-    TextRenderer textRenderer(fontPath, 48);
 
 
     int iter = 1;
@@ -117,15 +117,15 @@ int main() {
         // --- Rendu graphique (toujours affiché, même en pause) ---
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        heatmap.render(heatmapShader, heatmapQuad, heatmapModel);
+        heatmap.render(heatmapShader, quad, heatmapModel);
 
         // Affichage du prix
         textRenderer.drawText(
             textShader,
             last_price_str,
-            0.5f * windowWidth, 0.9f * windowHeight,
+            0.5f * windowWidth, 0.92f * windowHeight,
             0.3f,
-            textQuad,
+            quad,
             windowWidth, windowHeight,
             glm::vec3(1.0f, 1.0f, 1.0f)
         );
@@ -135,9 +135,9 @@ int main() {
             textRenderer.drawText(
                 textShader,
                 "PAUSE",
-                0.5f * windowWidth, 0.5f * windowHeight,
+                0.5f * windowWidth, 0.1f * windowHeight,
                 0.5f,
-                textQuad,
+                quad,
                 windowWidth, windowHeight,
                 glm::vec3(1.0f, 0.3f, 0.3f)
             );
@@ -148,11 +148,10 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    heatmapQuad.~Quad();
+    quad.~Quad();
     heatmapShader.~Shader();
     heatmap.~Heatmap();
 
-    textQuad.~Quad();
     textShader.~Shader();
     textRenderer.~TextRenderer();
     glfwTerminate();
