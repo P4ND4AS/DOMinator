@@ -2,6 +2,7 @@
 #include "../include/Shader.h"
 #include "geometry/Quad.h"
 #include "../include/TextRenderer.h"
+#include "../include/input_callbacks.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -73,6 +74,8 @@ int main() {
     }
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    // Key handling
+    glfwSetKeyCallback(window, key_callback);
 
 
     // Heatmap
@@ -90,7 +93,9 @@ int main() {
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
-        
+        int windowWidth, windowHeight;
+        glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+
         BookSnapshot snapshot = ob.getCurrentBook();
         double last_price = snapshot.last_price;
 
@@ -98,36 +103,49 @@ int main() {
         oss << std::fixed << std::setprecision(2) << last_price;
         std::string last_price_str = oss.str();
 
-        heatmap.update(snapshot);
+        // --- Simulation : update uniquement si pas en pause ---
+        if (!isPaused) {
+            heatmap.update(snapshot);
 
+            if (iter % 5 == 0) {
+                ob.update(20000);
+            }
+            iter++;
+            
+        }
+
+        // --- Rendu graphique (toujours affiché, même en pause) ---
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         heatmap.render(heatmapShader, heatmapQuad, heatmapModel);
 
-        int windowWidth, windowHeight;
-        glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
-
-        // Exemple pour afficher du texte blanc
+        // Affichage du prix
         textRenderer.drawText(
-            textShader,        // shader texte
-            last_price_str,        // texte à afficher
-            0.5f * windowWidth, 0.9f * windowHeight,    // position en pixels
-            0.3f,              // scale
-            textQuad,          // quad unité
+            textShader,
+            last_price_str,
+            0.5f * windowWidth, 0.9f * windowHeight,
+            0.3f,
+            textQuad,
             windowWidth, windowHeight,
-            glm::vec3(1.0f, 1.0f, 1.0f) // couleur blanche
+            glm::vec3(1.0f, 1.0f, 1.0f)
         );
 
-
+        // --- Overlay "PAUSE" si besoin ---
+        if (isPaused) {
+            textRenderer.drawText(
+                textShader,
+                "PAUSE",
+                0.5f * windowWidth, 0.5f * windowHeight,
+                0.5f,
+                textQuad,
+                windowWidth, windowHeight,
+                glm::vec3(1.0f, 0.3f, 0.3f)
+            );
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
-     
-        if (iter % 5 == 0) {
-            ob.update(20000);
-        }
-        iter++;
     }
 
     heatmapQuad.~Quad();
