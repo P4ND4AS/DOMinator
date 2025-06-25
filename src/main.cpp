@@ -135,7 +135,7 @@ int main() {
             textRenderer.drawText(
                 textShader,
                 "PAUSE",
-                0.5f * windowWidth, 0.1f * windowHeight,
+                0.5f * windowWidth, 0.04f * windowHeight,
                 0.5f,
                 quad,
                 windowWidth, windowHeight,

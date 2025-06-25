@@ -1,6 +1,11 @@
 #pragma once
 #include "Order.h"
 
+const extern double initialPrice;
+const extern double ticksize;
+const extern int timestep;
+const extern int depth;
+
 struct BookSnapshot {
     std::map<double, std::vector<LimitOrder>> prices;  // Les ordres à chaque niveau de prix
     double last_price;                            // Dernier prix exécuté
@@ -12,7 +17,7 @@ struct BookSnapshot {
 
 class OrderBook {
 public:
-    OrderBook(double initialPrice = 20000.00, int timestep = 5, int depth = 60, double ticksize = 0.25);
+    OrderBook();
 
     void initialize_book();
     void print_book_history() const;
@@ -26,12 +31,7 @@ public:
     void update(int n_iter);
 
 private:
-    double initialPrice;
-    double ticksize;
-    int timestep;
-    int depth;
     int orderIndex;
-
 
     int64_t currentTime;
     std::chrono::system_clock::time_point initStartTime();

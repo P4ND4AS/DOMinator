@@ -12,6 +12,14 @@
 #include <iomanip>
 
 
+const double initialPrice = 20000.00;
+const double ticksize = 0.25;
+const int timestep = 5;
+const int depth = 60;
+
+
+
+
 std::chrono::system_clock::time_point OrderBook::initStartTime() {
     std::tm tm = {};
     tm.tm_year = 2025 - 1900;
@@ -42,12 +50,8 @@ std::string OrderBook::formatTimestamp(const std::chrono::system_clock::time_poi
 }
 
 
-OrderBook::OrderBook(double initialPrice, int timestep, int depth, double ticksize)
-    : initialPrice(initialPrice),
-    timestep(timestep),
-    depth(depth),
-    ticksize(ticksize),
-    orderIndex(0),
+OrderBook::OrderBook()
+    :orderIndex(0),
     lastPrice(lastPrice),
     lastSide(lastSide)
 {
