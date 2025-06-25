@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/main.cpp
+/utils.h
+/TextRenderer.h
+/OrderBook.h
+/OrderBook.cpp
+/Order.h
+/Heatmap.h
+/Heatmap.cpp

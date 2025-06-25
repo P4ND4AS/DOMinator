@@ -128,22 +128,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Heatmap.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="OrderBook.cpp" />
     <ClCompile Include="src\geometry\Quad.cpp" />
     <ClCompile Include="src\glad.c" />
+    <ClCompile Include="src\Heatmap.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\OrderBook.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Heatmap.h" />
     <ClInclude Include="include\glad\glad.h" />
+    <ClInclude Include="include\Heatmap.h" />
+    <ClInclude Include="include\Order.h" />
+    <ClInclude Include="include\OrderBook.h" />
     <ClInclude Include="include\Shader.h" />
-    <ClInclude Include="Order.h" />
-    <ClInclude Include="OrderBook.h" />
+    <ClInclude Include="include\TextRenderer.h" />
+    <ClInclude Include="include\utils.h" />
     <ClInclude Include="src\geometry\Quad.h" />
-    <ClInclude Include="TextRenderer.h" />
-    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\text.frag" />

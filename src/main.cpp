@@ -1,6 +1,6 @@
 #include "OrderBook.h"
-#include "include/Shader.h"
-#include "src/geometry/Quad.h"
+#include "../include/Shader.h"
+#include "geometry/Quad.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
