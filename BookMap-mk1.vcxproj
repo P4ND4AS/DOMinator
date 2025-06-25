@@ -134,6 +134,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\OrderBook.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
+    <ClCompile Include="src\TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\glad\glad.h" />

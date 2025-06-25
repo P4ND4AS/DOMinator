@@ -1,6 +1,7 @@
 #include "OrderBook.h"
 #include "../include/Shader.h"
 #include "geometry/Quad.h"
+#include "../include/TextRenderer.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -67,25 +68,51 @@ int main() {
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
 
+
+    // Heatmap
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
-    //Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
-
-    Quad renderQuad;
-
+    Quad heatmapQuad;
     Heatmap heatmap(121, 640);
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::scale(model, glm::vec3(0.8f, 0.8f, 1.0f));
+    glm::mat4 heatmapModel = glm::mat4(1.0f);
+    heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
+
+    // Text
+    Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
+    Quad textQuad;
+    TextRenderer textRenderer(fontPath, 48);
 
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         
         BookSnapshot snapshot = ob.getCurrentBook();
+        double last_price = snapshot.last_price;
+
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << last_price;
+        std::string last_price_str = oss.str();
+
         heatmap.update(snapshot);
 
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        heatmap.render(heatmapShader, renderQuad, model);
+        heatmap.render(heatmapShader, heatmapQuad, heatmapModel);
+
+        int windowWidth, windowHeight;
+        glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+
+        // Exemple pour afficher du texte blanc
+        textRenderer.drawText(
+            textShader,        // shader texte
+            last_price_str,        // texte à afficher
+            380.0f, 550.0f,    // position en pixels
+            0.3f,              // scale
+            textQuad,          // quad unité
+            windowWidth, windowHeight,
+            glm::vec3(1.0f, 1.0f, 1.0f) // couleur blanche
+        );
+
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -97,9 +124,13 @@ int main() {
         iter++;
     }
 
-    renderQuad.~Quad();
+    heatmapQuad.~Quad();
     heatmapShader.~Shader();
     heatmap.~Heatmap();
+
+    textQuad.~Quad();
+    textShader.~Shader();
+    textRenderer.~TextRenderer();
     glfwTerminate();
     return 0;
 }

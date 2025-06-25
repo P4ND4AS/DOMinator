@@ -4,6 +4,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "../include/Shader.h"
+#include "../src/geometry/Quad.h"
+#include <string>
 
 
 
@@ -20,7 +22,8 @@ public:
 	TextRenderer(const char* fontPath, int pixelSize);
 	~TextRenderer();
 
-	void drawText(Shader& shader, const std::string& text, float x, float y, float scale);
+	void drawText(Shader& shader, const std::string& text, float x, float y, 
+		float scale, Quad& quad, int windowWidth, int windowHeight, const glm::vec3& color);
 	
 private:
 	std::map<char, GlyphTexture> glyphs_;

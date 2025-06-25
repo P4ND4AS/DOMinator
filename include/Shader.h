@@ -19,8 +19,8 @@ class Shader {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-    void setFloatArray(const std::string &name, const float* values, int count) const {
-        glUniform1fv(glGetUniformLocation(ID, name.c_str()), count, values);
+    void setVec3(const std::string& name, const glm::vec3& value) const {
+        glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
     }
 
     void setMat4(const std::string& name, const glm::mat4& mat) const;
