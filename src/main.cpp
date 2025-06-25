@@ -18,6 +18,12 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
+
+
 const char* fontPath = "fonts/RobotoMono-Regular.ttf";
 
 int main() {
@@ -65,7 +71,7 @@ int main() {
         glfwTerminate();
         return -1;
     }
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 
 
@@ -105,7 +111,7 @@ int main() {
         textRenderer.drawText(
             textShader,        // shader texte
             last_price_str,        // texte à afficher
-            380.0f, 550.0f,    // position en pixels
+            0.5f * windowWidth, 0.9f * windowHeight,    // position en pixels
             0.3f,              // scale
             textQuad,          // quad unité
             windowWidth, windowHeight,
