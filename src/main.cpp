@@ -3,6 +3,7 @@
 #include "geometry/Quad.h"
 #include "../include/TextRenderer.h"
 #include "../include/input_callbacks.h"
+#include "../include/YAxis.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -82,8 +83,10 @@ int main() {
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
+    int nRows = 121;
+    int nCols = 640;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
-    Heatmap heatmap(121, 640);
+    Heatmap heatmap(nRows, nCols);
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
@@ -128,6 +131,25 @@ int main() {
             quad,
             windowWidth, windowHeight,
             glm::vec3(1.0f, 1.0f, 1.0f)
+        );
+        // Paramètres heatmap
+        float heatmapX = 0.1f * windowWidth;
+        float heatmapY = 0.1f * windowHeight;
+        float heatmapWidth = 0.8f * windowWidth;
+        float heatmapHeight = 0.8f * windowHeight;
+
+        //Affichage de l'axe Y
+        drawYAxis(
+            10,
+            nRows,
+            heatmapX,   
+            heatmapY,                  
+            heatmapWidth,                        
+            heatmapHeight,             
+            windowWidth, windowHeight,
+            textRenderer,
+            textShader,
+            quad
         );
 
         // --- Overlay "PAUSE" si besoin ---

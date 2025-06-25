@@ -126,3 +126,9 @@ void TextRenderer::drawText(Shader& shader, const std::string& text, float x, fl
 		xCursor += (glyph.advance >> 6) * scale;
 	}
 }
+
+int TextRenderer::getGlyphHeight(char c) const {
+	auto it = glyphs_.find(c);
+	if (it != glyphs_.end()) return it->second.height;
+	return 0;
+}

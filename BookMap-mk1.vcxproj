@@ -136,6 +136,7 @@
     <ClCompile Include="src\OrderBook.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
     <ClCompile Include="src\TextRenderer.cpp" />
+    <ClCompile Include="src\YAxis.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\glad\glad.h" />
@@ -146,6 +147,7 @@
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\TextRenderer.h" />
     <ClInclude Include="include\utils.h" />
+    <ClInclude Include="include\YAxis.h" />
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>
   <ItemGroup>

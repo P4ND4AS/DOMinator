@@ -25,6 +25,8 @@ public:
 	void drawText(Shader& shader, const std::string& text, float x, float y, 
 		float scale, Quad& quad, int windowWidth, int windowHeight, const glm::vec3& color);
 	
+	int getGlyphHeight(char c) const;
+
 private:
 	std::map<char, GlyphTexture> glyphs_;
 	FT_Library ft_;
