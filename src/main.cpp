@@ -13,6 +13,7 @@
 #include <thread>
 #include "Heatmap.h"
 #include <ft2build.h>
+#include <random>
 
 
 #include FT_FREETYPE_H
@@ -24,6 +25,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+std::random_device rd;
+std::mt19937 rng(rd());    // Générateur unique
 
 
 const char* fontPath = "fonts/RobotoMono-Regular.ttf";
@@ -33,7 +36,7 @@ int main() {
     std::cout << "Création OrderBook..." << std::endl;
     OrderBook ob;
     std::cout << "Ajout liquidité initiale..." << std::endl;
-    ob.setInitialLiquidity(500);
+    ob.setInitialLiquidity(500, rng);
 
     const int n_iter = 10000;
     std::cout << "Début simulation..." << std::endl;
@@ -111,7 +114,7 @@ int main() {
             heatmap.update(snapshot);
 
             if (iter % 3 == 0) {
-                ob.update(12000);
+                ob.update(12000, rng);
             }
             iter++;
             

@@ -1,5 +1,6 @@
 #pragma once
 #include "Order.h"
+#include <random>
 
 const extern double initialPrice;
 const extern double ticksize;
@@ -24,12 +25,12 @@ public:
     void print_book_history() const;
     const BookSnapshot& getCurrentBook() const { return currentBook; }
     const double& getCurrentLastPrice() const { return currentBook.last_price; }
-    LimitOrder addLimitOrder();
-    void setInitialLiquidity(int n_orders);
+    LimitOrder addLimitOrder(std::mt19937& rng);
+    void setInitialLiquidity(int n_orders, std::mt19937& rng);
     MarketOrder generateMarketOrder();
     void processMarketOrder(const MarketOrder& order);
     void modifyLiquidity();
-    void update(int n_iter);
+    void update(int n_iter, std::mt19937& rng);
 
 private:
     int orderIndex;

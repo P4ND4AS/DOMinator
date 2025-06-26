@@ -1,5 +1,6 @@
 #include "engine/OrderBook.h"
 #include "utils.h"
+#include "densities/densities_add_liq.h"
 #include <algorithm>
 #include <cstdint>
 #include <vector>
@@ -15,7 +16,7 @@
 const double initialPrice = 20000.00;
 const double ticksize = 0.25;
 const int timestep = 5;
-const int depth = 60;
+const int depth = 120;
 const Side lastSide = Side::BID;
 
 
@@ -78,10 +79,10 @@ void OrderBook::initialize_book() {
 
 }
 
-void OrderBook::setInitialLiquidity(int n_orders) {
+void OrderBook::setInitialLiquidity(int n_orders, std::mt19937& rng) {
     for (int i = 0; i < n_orders; ++i) {
         try {
-            LimitOrder order = addLimitOrder();
+            LimitOrder order = addLimitOrder(rng);
             currentBook.prices[order.price].push_back(order);
         }
         catch (const std::exception& e) {
@@ -130,52 +131,18 @@ void OrderBook::print_book_history() const {
 
 
 
-LimitOrder OrderBook::addLimitOrder() {
+LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
 
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    double S = currentBestAsk - currentBestBid;
+    double q1Bid = 0;// getVolumeAt(...);
+    double q1Ask = 0;// getVolumeAt(...);
 
-    //std::discrete_distribution<> side_dist({ 0.8, 0.2 });
+    Side side = sampleAddLiqSide(gSimuParams, S, q1Ask, q1Bid, rng);
 
-    std::uniform_int_distribution<> side_dist(0, 1);
-    std::uniform_int_distribution<> size_dist(1, 2);
-    Side side = (side_dist(gen) == 0) ? Side::BID : Side::ASK;
-    int size = size_dist(gen);
+    int size = sampleAddLiqSize(gSimuParams, rng);
 
-    double price;
-    // Calcul les niveaux de prix valides
-    std::vector<double> valid_prices;
-    valid_prices.reserve(2*depth+1);
-
-    if (side == Side::BID) {
-        double p = currentBestAsk - ticksize;
-        while (p >= minPrice) {
-            valid_prices.push_back(p);
-            p -= ticksize;
-        }
-    }
-    else {
-        double p = currentBestBid + ticksize;
-        while (p <= maxPrice) {
-            valid_prices.push_back(p);
-            p += ticksize;
-        }
-    }
-
-    if (valid_prices.empty()) {
-        std::cout<<"Side: " << sideToString(side) << "\n";
-        throw std::runtime_error("No valid price levels available for limit order");
-    }
-    
-    std::uniform_int_distribution<> price_index_dist(0, static_cast<int>(valid_prices.size()) - 1);;
-    price = valid_prices[price_index_dist(gen)];
-
-    //std::exponential_distribution<> price_index_dist(0.1);
-    //int indexPriceSelected = std::clamp(int(price_index_dist(gen)), 0, int(valid_prices.size()-1));
-    //if (indexPriceSelected >= valid_prices.size()) {
-    //    throw std::runtime_error("Index mauvais");
-    //}
-    //price = valid_prices[int(price_index_dist(gen))];
+    double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk,
+        minPrice, maxPrice, rng);
 
     if (side == Side::BID && price > currentBestBid) {
         currentBestBid = price;
@@ -185,13 +152,12 @@ LimitOrder OrderBook::addLimitOrder() {
     }
 
     LimitOrder order;
-    order.id = orderIndex;
+    order.id = orderIndex++;
     order.price = price;
     order.size = size;
     order.side = side;
     order.timestamp = currentTime;
 
-    orderIndex++;
     return order;
 }
 
@@ -341,7 +307,7 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 }
 
 
-void OrderBook::update(int n_iter) {
+void OrderBook::update(int n_iter, std::mt19937& rng) {
 
     for (int i = 0; i < n_iter; ++i) {
         /*if (i % 50000 == 0) {
@@ -358,7 +324,7 @@ void OrderBook::update(int n_iter) {
 
         if (eventType == 0) {
             // ADD LIMIT ORDER
-            LimitOrder limitOrder = addLimitOrder();
+            LimitOrder limitOrder = addLimitOrder(rng);
             currentBook.prices[limitOrder.price].push_back(limitOrder);
             //std::cout << "Ordre limite ajout à: " << limitOrder.price << ", size: " << limitOrder.size << " au " << sideToString(limitOrder.side) << "\n";
         }
