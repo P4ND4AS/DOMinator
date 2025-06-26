@@ -128,9 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\densities_add_liq.cpp" />
-    <ClCompile Include="src\densities_market_order.cpp" />
-    <ClCompile Include="src\densities_mod_liq.cpp" />
+    <ClCompile Include="src\densities\densities_add_liq.cpp" />
+    <ClCompile Include="src\densities\densities_market_order.cpp" />
+    <ClCompile Include="src\densities\densities_mod_liq.cpp" />
+    <ClCompile Include="src\densities\SimuParams.cpp" />
     <ClCompile Include="src\geometry\Quad.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\Heatmap.cpp" />
@@ -138,24 +139,23 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\OrderBook.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
-    <ClCompile Include="src\SimuParams.cpp" />
-    <ClCompile Include="src\TextRenderer.cpp" />
-    <ClCompile Include="src\YAxis.cpp" />
+    <ClCompile Include="src\Text\TextRenderer.cpp" />
+    <ClCompile Include="src\Text\YAxis.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\densities_add_liq.h" />
-    <ClInclude Include="include\densities_market_order.h" />
-    <ClInclude Include="include\densities_mod_liq.h" />
+    <ClInclude Include="include\Densities\densities_add_liq.h" />
+    <ClInclude Include="include\Densities\densities_market_order.h" />
+    <ClInclude Include="include\Densities\densities_mod_liq.h" />
+    <ClInclude Include="include\Densities\SimuParams.h" />
+    <ClInclude Include="include\Engine\Order.h" />
+    <ClInclude Include="include\Engine\OrderBook.h" />
     <ClInclude Include="include\glad\glad.h" />
     <ClInclude Include="include\Heatmap.h" />
     <ClInclude Include="include\input_callbacks.h" />
-    <ClInclude Include="include\Order.h" />
-    <ClInclude Include="include\OrderBook.h" />
     <ClInclude Include="include\Shader.h" />
-    <ClInclude Include="include\SimuParams.h" />
-    <ClInclude Include="include\TextRenderer.h" />
+    <ClInclude Include="include\Text\TextRenderer.h" />
+    <ClInclude Include="include\Text\YAxis.h" />
     <ClInclude Include="include\utils.h" />
-    <ClInclude Include="include\YAxis.h" />
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>
   <ItemGroup>

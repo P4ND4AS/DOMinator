@@ -13,6 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Fichiers sources\densities">
+      <UniqueIdentifier>{a6b67b57-5d2d-4127-88e8-74f1baadfca1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête\densities">
+      <UniqueIdentifier>{e91e259e-1fd1-4dd7-9a2c-5567fe0a5dfc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête\engine">
+      <UniqueIdentifier>{a5eac954-898b-49f3-9db1-625a63893b32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête\text">
+      <UniqueIdentifier>{268c54b4-ec07-4b51-8ed2-af1c92df3922}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers sources\text">
+      <UniqueIdentifier>{7a67a81b-46ee-4f09-aacc-3b852a5a3521}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad.c">
@@ -33,26 +48,26 @@
     <ClCompile Include="src\OrderBook.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\TextRenderer.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
     <ClCompile Include="src\input_callbacks.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\YAxis.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\densities\densities_add_liq.cpp">
+      <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
-    <ClCompile Include="src\densities_add_liq.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\densities\densities_market_order.cpp">
+      <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
-    <ClCompile Include="src\densities_market_order.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\densities\densities_mod_liq.cpp">
+      <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
-    <ClCompile Include="src\densities_mod_liq.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\densities\SimuParams.cpp">
+      <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
-    <ClCompile Include="src\SimuParams.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\Text\TextRenderer.cpp">
+      <Filter>Fichiers sources\text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Text\YAxis.cpp">
+      <Filter>Fichiers sources\text</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -68,35 +83,35 @@
     <ClInclude Include="include\Heatmap.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="include\Order.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="include\OrderBook.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="include\TextRenderer.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="include\utils.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="include\input_callbacks.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="include\YAxis.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="include\Densities\densities_add_liq.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
-    <ClInclude Include="include\densities_add_liq.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="include\Densities\densities_market_order.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
-    <ClInclude Include="include\densities_market_order.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="include\Densities\densities_mod_liq.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
-    <ClInclude Include="include\densities_mod_liq.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="include\Densities\SimuParams.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
-    <ClInclude Include="include\SimuParams.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="include\Engine\Order.h">
+      <Filter>Fichiers d%27en-tête\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Engine\OrderBook.h">
+      <Filter>Fichiers d%27en-tête\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Text\TextRenderer.h">
+      <Filter>Fichiers d%27en-tête\text</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Text\YAxis.h">
+      <Filter>Fichiers d%27en-tête\text</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

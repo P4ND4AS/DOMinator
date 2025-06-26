@@ -1,9 +1,9 @@
-#include "OrderBook.h"
+#include "engine/OrderBook.h"
 #include "../include/Shader.h"
 #include "geometry/Quad.h"
-#include "../include/TextRenderer.h"
+#include "../include/text/TextRenderer.h"
 #include "../include/input_callbacks.h"
-#include "../include/YAxis.h"
+#include "../include/text/YAxis.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
