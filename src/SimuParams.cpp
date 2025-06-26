@@ -4,11 +4,12 @@ SimuParams gSimuParams = {
 
 	.addLiq = {
 		.priceDist = {
-			.mu_delta = 0.001,
-			.p_birth = 0.05,
-			.p_death = 0.05,
-			.s_delta = 0.005,   
-			.s_init = 0.01
+			.mu_jitter = 0.01,
+			.p_birth = 0.0005,
+			.p_death = 0.0005,
+			.sigma_jitter = 0.01,   
+			.sigma_init = 0.1,
+			.amplitudeBrownian = 1,
 		},
 		.a = 0.05,
 	},

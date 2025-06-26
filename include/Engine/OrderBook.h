@@ -53,5 +53,5 @@ private:
 
     std::map<int64_t, BookSnapshot> bookHistory;
 
-    std::vector<Foyer> foyers_states = { {initialPrice, 0.01} };
+    std::vector<Foyer> foyers_states = { {initialPrice + depth / 2, 0.01} };
 };

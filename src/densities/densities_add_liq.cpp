@@ -28,8 +28,8 @@ int sampleAddLiqSize(const SimuParams& params, std::mt19937& rng) {
 
 
 double sampleAddLiqPrice(const SimuParams& params, Side side, double currentBestBid,
-	double currentBestAsk, double minPrice, double maxPrice,
-	std::mt19937& rng) {
+	double currentBestAsk, double minPrice, double maxPrice, std::vector<double> prices,
+	std::vector<Foyer>& foyers_state, std::mt19937& rng) {
 
 	std::vector<double> valid_prices;
 	if (side == Side::BID) {
@@ -43,8 +43,16 @@ double sampleAddLiqPrice(const SimuParams& params, Side side, double currentBest
 		}
 	}
 
-	double lambda = params.addLiq.a;
-	std::exponential_distribution<> exp_dist(lambda);
-	int idx = std::clamp((int)exp_dist(rng), 0, (int)valid_prices.size() - 1);
+	std::vector<double> density = density_brownian(foyers_state, prices, params);
+
+
+	std::vector<double> density_valid;
+	for (double price : valid_prices) {
+		int idx = static_cast<int>((price - minPrice) / ticksize);
+		density_valid.push_back(density[idx]);
+	}
+
+	std::discrete_distribution<> price_dist(density_valid.begin(), density_valid.end());
+	int idx = price_dist(rng);
 	return valid_prices[idx];
 }

@@ -142,7 +142,7 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
     int size = sampleAddLiqSize(gSimuParams, rng);
 
     double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk,
-        minPrice, maxPrice, rng);
+        minPrice, maxPrice, prices, foyers_states, rng);
 
     if (side == Side::BID && price > currentBestBid) {
         currentBestBid = price;

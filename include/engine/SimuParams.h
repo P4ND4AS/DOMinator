@@ -1,11 +1,12 @@
 #pragma once
 
 struct PriceDistParams {
-    double mu_delta;
+    double mu_jitter;
     double p_birth;
     double p_death;
-    double s_delta;  // <-- Doit bien s'appeler s_delta
-    double s_init;
+    double sigma_jitter;  // <-- Doit bien s'appeler s_delta
+    double sigma_init;
+    double amplitudeBrownian;
 };
 
 struct AddLiqParams {
