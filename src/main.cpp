@@ -83,8 +83,8 @@ int main() {
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
-    int nRows = 121;
-    int nCols = 640;
+    int nRows = 120;
+    int nCols = SCR_WIDTH * 0.8f;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(nRows, nCols);
     glm::mat4 heatmapModel = glm::mat4(1.0f);
@@ -110,8 +110,8 @@ int main() {
         if (!isPaused) {
             heatmap.update(snapshot);
 
-            if (iter % 5 == 0) {
-                ob.update(20000);
+            if (iter % 3 == 0) {
+                ob.update(12000);
             }
             iter++;
             

@@ -95,7 +95,7 @@ void Heatmap::scrollLeft() {
 void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 
 	for (int r = 0; r < rows; ++r) {
-		double price_level = min_price + r * 0.25;
+		double price_level = min_price + r * ticksize;
 		float volume = 0.0f;
 
 		auto it = snapshot.prices.find(price_level);

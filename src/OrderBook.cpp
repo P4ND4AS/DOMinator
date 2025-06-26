@@ -16,7 +16,7 @@ const double initialPrice = 20000.00;
 const double ticksize = 0.25;
 const int timestep = 5;
 const int depth = 60;
-
+const Side lastSide = Side::BID;
 
 
 
@@ -51,9 +51,7 @@ std::string OrderBook::formatTimestamp(const std::chrono::system_clock::time_poi
 
 
 OrderBook::OrderBook()
-    :orderIndex(0),
-    lastPrice(lastPrice),
-    lastSide(lastSide)
+    :orderIndex(0)
 {
     // Initialisation du vecteur des prix autour du prix initial
     for (int i = -depth; i <= depth; ++i) {
@@ -76,7 +74,7 @@ void OrderBook::initialize_book() {
     currentBook.last_price = initialPrice;
     currentBook.last_side = lastSide;
     
-    bookHistory[currentTime] = currentBook;
+    // bookHistory[currentTime] = currentBook;
 
 }
 
@@ -85,19 +83,13 @@ void OrderBook::setInitialLiquidity(int n_orders) {
         try {
             LimitOrder order = addLimitOrder();
             currentBook.prices[order.price].push_back(order);
-            if ((order.side == Side::BID) && order.price > currentBestBid) {
-                currentBestBid = order.price;
-            }
-            if ((order.side == Side::ASK) && order.price < currentBestAsk) {
-                currentBestAsk = order.price;
-            }
         }
         catch (const std::exception& e) {
             std::cerr << "Erreur lors de la génération d'un ordre limite: " << e.what() << std::endl;
             break;
         }
     }
-    bookHistory[currentTime] = currentBook;
+    //bookHistory[currentTime] = currentBook;
     //std::cout << "CurrentBestBid: " << currentBestBid << "\nand CurrentBestAsk: " << currentBestAsk << '\n';
 }
 
@@ -157,14 +149,14 @@ LimitOrder OrderBook::addLimitOrder() {
 
     if (side == Side::BID) {
         double p = currentBestAsk - ticksize;
-        while (p > minPrice) {
+        while (p >= minPrice) {
             valid_prices.push_back(p);
             p -= ticksize;
         }
     }
     else {
         double p = currentBestBid + ticksize;
-        while (p < maxPrice) {
+        while (p <= maxPrice) {
             valid_prices.push_back(p);
             p += ticksize;
         }
@@ -269,8 +261,6 @@ MarketOrder OrderBook::generateMarketOrder() {
     static std::mt19937 gen(rd());
     static std::uniform_int_distribution<int> side_dist(0, 1);
     static std::exponential_distribution<> size_dist(1.0);
-
-    //std::discrete_distribution<> side_dist({ 0.8, 0.2});
 
     MarketOrder order;
     order.side = (side_dist(gen) == 0) ? Side::ASK : Side::BID;

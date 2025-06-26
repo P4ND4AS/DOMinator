@@ -5,6 +5,7 @@ const extern double initialPrice;
 const extern double ticksize;
 const extern int timestep;
 const extern int depth;
+const extern Side lastSide;
 
 struct BookSnapshot {
     std::map<double, std::vector<LimitOrder>> prices;  // Les ordres à chaque niveau de prix
@@ -38,9 +39,6 @@ private:
     std::string formatTimestamp(const std::chrono::system_clock::time_point& tp) const;
     std::vector<double> prices;
     BookSnapshot currentBook;
-
-    double lastPrice;
-    Side lastSide = Side::ASK;
 
     double currentBestBid = initialPrice - ticksize;
     double currentBestAsk = initialPrice + ticksize;

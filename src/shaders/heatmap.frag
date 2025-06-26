@@ -47,10 +47,6 @@ void main() {
     float trait_y = texture(last_price_line, float(col) / float(cols-1)).r;
     float dist = abs(uv.y - trait_y);
 
-
-    if (dist < 1 / float(600)) {
-        FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    } 
     if ((uv.y >= minRow - eps && uv.y <= maxRow + eps && minRow != maxRow) || dist < 1/float(600)) {
         FragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
