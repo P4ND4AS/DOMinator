@@ -1,9 +1,16 @@
 #pragma once
 
+struct PriceDistParams {
+    double mu_delta;
+    double p_birth;
+    double p_death;
+    double s_delta;  // <-- Doit bien s'appeler s_delta
+    double s_init;
+};
+
 struct AddLiqParams {
+    PriceDistParams priceDist;
     double a;
-    double b;
-    // autres paramètres spécifiques à l'ajout de liquidité
 };
 
 struct RemoveLiqParams {

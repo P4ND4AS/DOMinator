@@ -1,5 +1,6 @@
 #pragma once
 #include "Order.h"
+#include "densities/density_brownian.h"
 #include <random>
 
 const extern double initialPrice;
@@ -51,4 +52,6 @@ private:
     std::vector<double> bestAsks;
 
     std::map<int64_t, BookSnapshot> bookHistory;
+
+    std::vector<Foyer> foyers_states = { {initialPrice, 0.01} };
 };

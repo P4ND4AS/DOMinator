@@ -310,17 +310,13 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 void OrderBook::update(int n_iter, std::mt19937& rng) {
 
     for (int i = 0; i < n_iter; ++i) {
-        /*if (i % 50000 == 0) {
-            std::cout << "Itération n°" << i << std::endl;
-        }*/
-       
 
         currentTime += timestep;
 
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::discrete_distribution<> event_dist({ 0.005, 0.005, 0.0004, 0.9896 });
-        int eventType = event_dist(gen);
+        double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
+
+        std::discrete_distribution<> event_dist({ p_add_liq, 0.005, 0.0004, 0.9896 });
+        int eventType = event_dist(rng);
 
         if (eventType == 0) {
             // ADD LIMIT ORDER
@@ -341,8 +337,5 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
         //bookHistory[currentTime] = currentBook;
         //bestAsks.push_back(currentBestAsk);
         //bestBids.push_back(currentBestBid);
-
-        //std::cout << "BestBid: " << bestBids.back() << "\nand BestAsk: " << bestAsks.back() << '\n';
-        //std::cout << "\n";
     }
 }

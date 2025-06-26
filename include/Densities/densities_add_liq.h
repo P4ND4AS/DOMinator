@@ -2,7 +2,7 @@
 #include <vector>
 #include <random>
 #include "engine/Order.h"
-#include "SimuParams.h"
+#include "engine/SimuParams.h"
 
 double sampleLambdaL(const SimuParams& params, double S, double q1Ask, 
 					 double q1Bid, std::mt19937& rng);

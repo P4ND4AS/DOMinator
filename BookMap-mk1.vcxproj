@@ -131,7 +131,10 @@
     <ClCompile Include="src\densities\densities_add_liq.cpp" />
     <ClCompile Include="src\densities\densities_market_order.cpp" />
     <ClCompile Include="src\densities\densities_mod_liq.cpp" />
-    <ClCompile Include="src\densities\SimuParams.cpp" />
+    <ClCompile Include="src\densities\density_brownian.cpp" />
+    <ClCompile Include="src\densities\density_power.cpp" />
+    <ClCompile Include="src\densities\density_round.cpp" />
+    <ClCompile Include="src\densities\density_utils.cpp" />
     <ClCompile Include="src\geometry\Quad.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\Heatmap.cpp" />
@@ -139,6 +142,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\OrderBook.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
+    <ClCompile Include="src\SimuParams.cpp" />
     <ClCompile Include="src\Text\TextRenderer.cpp" />
     <ClCompile Include="src\Text\YAxis.cpp" />
   </ItemGroup>
@@ -146,9 +150,13 @@
     <ClInclude Include="include\Densities\densities_add_liq.h" />
     <ClInclude Include="include\Densities\densities_market_order.h" />
     <ClInclude Include="include\Densities\densities_mod_liq.h" />
-    <ClInclude Include="include\Densities\SimuParams.h" />
+    <ClInclude Include="include\densities\density_brownian.h" />
+    <ClInclude Include="include\densities\density_power.h" />
+    <ClInclude Include="include\densities\density_round.h" />
+    <ClInclude Include="include\densities\density_utils.h" />
     <ClInclude Include="include\Engine\Order.h" />
     <ClInclude Include="include\Engine\OrderBook.h" />
+    <ClInclude Include="include\engine\SimuParams.h" />
     <ClInclude Include="include\glad\glad.h" />
     <ClInclude Include="include\Heatmap.h" />
     <ClInclude Include="include\input_callbacks.h" />

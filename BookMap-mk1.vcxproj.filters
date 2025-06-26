@@ -60,14 +60,26 @@
     <ClCompile Include="src\densities\densities_mod_liq.cpp">
       <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
-    <ClCompile Include="src\densities\SimuParams.cpp">
-      <Filter>Fichiers sources\densities</Filter>
-    </ClCompile>
     <ClCompile Include="src\Text\TextRenderer.cpp">
       <Filter>Fichiers sources\text</Filter>
     </ClCompile>
     <ClCompile Include="src\Text\YAxis.cpp">
       <Filter>Fichiers sources\text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SimuParams.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\densities\density_brownian.cpp">
+      <Filter>Fichiers sources\densities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\densities\density_power.cpp">
+      <Filter>Fichiers sources\densities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\densities\density_round.cpp">
+      <Filter>Fichiers sources\densities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\densities\density_utils.cpp">
+      <Filter>Fichiers sources\densities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -98,9 +110,6 @@
     <ClInclude Include="include\Densities\densities_mod_liq.h">
       <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
-    <ClInclude Include="include\Densities\SimuParams.h">
-      <Filter>Fichiers d%27en-tête\densities</Filter>
-    </ClInclude>
     <ClInclude Include="include\Engine\Order.h">
       <Filter>Fichiers d%27en-tête\engine</Filter>
     </ClInclude>
@@ -112,6 +121,21 @@
     </ClInclude>
     <ClInclude Include="include\Text\YAxis.h">
       <Filter>Fichiers d%27en-tête\text</Filter>
+    </ClInclude>
+    <ClInclude Include="include\engine\SimuParams.h">
+      <Filter>Fichiers d%27en-tête\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\densities\density_brownian.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\densities\density_power.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\densities\density_round.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\densities\density_utils.h">
+      <Filter>Fichiers d%27en-tête\densities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
