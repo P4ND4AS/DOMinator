@@ -3,7 +3,7 @@
 uniform sampler2D heatmap;
 uniform sampler1D last_price_line;
 uniform int cols;
-uniform int rows; 
+uniform int view_rows; 
 
 in vec2 fragUV;
 out vec4 FragColor;

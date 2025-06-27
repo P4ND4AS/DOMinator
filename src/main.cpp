@@ -93,6 +93,8 @@ int main() {
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
+    glfwSetWindowUserPointer(window, &heatmap);
+
     // Text
     Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
 
