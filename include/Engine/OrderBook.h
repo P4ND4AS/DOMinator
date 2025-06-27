@@ -31,7 +31,7 @@ public:
     void setInitialLiquidity(int n_orders, std::mt19937& rng);
     MarketOrder generateMarketOrder();
     void processMarketOrder(const MarketOrder& order);
-    void modifyLiquidity();
+    void cancelLiquidity(std::mt19937& rng);
     void update(int n_iter, std::mt19937& rng);
 
     std::vector<Foyer> getCurrentFoyersState() const { return foyers_states; }

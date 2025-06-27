@@ -11,10 +11,14 @@ void updateFoyerState(
 	std::vector<Foyer>& foyers_state,
 	const std::vector<double>& prices,
 	std::mt19937& rng,
-	const SimuParams& params
+	const double& p_death,
+    const double& p_birth,
+    const double& sigma_init,
+    const double& mu_jitter,
+    const double& sigma_jitter
 ) {
 	// Supprimer les foyers morts
-    std::bernoulli_distribution death_dist(params.addLiq.priceDist.p_death);
+    std::bernoulli_distribution death_dist(p_death);
     foyers_state.erase(
         std::remove_if(
             foyers_state.begin(), foyers_state.end(),
@@ -24,16 +28,16 @@ void updateFoyerState(
     );
 
     // Ajouter un nouveau foyer ?
-	std::bernoulli_distribution birth_dist(params.addLiq.priceDist.p_birth);
+	std::bernoulli_distribution birth_dist(p_birth);
     if (birth_dist(rng)) {
         std::uniform_int_distribution<> pick_price(0, prices.size() - 1);
         double new_mu = prices[pick_price(rng)];
-        foyers_state.push_back({ new_mu, params.addLiq.priceDist.sigma_init });
+        foyers_state.push_back({ new_mu, sigma_init });
     }
 
     // Faire évoluer chaque foyer
-    std::normal_distribution<> mu_noise(0.0, params.addLiq.priceDist.mu_jitter);
-    std::normal_distribution<> sigma_noise(0.0, params.addLiq.priceDist.sigma_jitter);
+    std::normal_distribution<> mu_noise(0.0, mu_jitter);
+    std::normal_distribution<> sigma_noise(0.0, sigma_jitter);
 
     for (auto& foyer : foyers_state) {
         foyer.mu += mu_noise(rng);
@@ -50,9 +54,9 @@ void updateFoyerState(
 std::vector<double> density_brownian(
     const std::vector<Foyer>& foyers_state,
     const std::vector<double>& prices,
-    const SimuParams& params
+    const double& amplitudeBrownian
 ) {
-    double A = params.addLiq.priceDist.amplitudeBrownian;
+    double A = amplitudeBrownian;
     std::vector<double> f_density(prices.size(), 0.0);
 
     for (const Foyer& foyer : foyers_state) {

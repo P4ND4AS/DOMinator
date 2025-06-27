@@ -5,14 +5,14 @@
 #include "densities/density_power.h"
 #include "densities/density_utils.h"
 
-double sampleLambdaL(const SimuParams& params, double S, double q1Ask, double q1Bid, std::mt19937& rng) {
+double sampleLambdaL(SimuParams& params, double S, double q1Ask, double q1Bid, std::mt19937& rng) {
 	 double p_add_liq = 0.005;
 	 return p_add_liq;
 }
 
 
 
-Side sampleAddLiqSide(const SimuParams& params, double S, double q1Ask, double q1Bid,
+Side sampleAddLiqSide(SimuParams& params, double S, double q1Ask, double q1Bid,
 				      std::mt19937& rng) {
 	double p_bid = 0.5;
 	std::bernoulli_distribution side_dist(p_bid);
@@ -22,7 +22,7 @@ Side sampleAddLiqSide(const SimuParams& params, double S, double q1Ask, double q
 
 
 
-int sampleAddLiqSize(const SimuParams& params, std::mt19937& rng) {
+int sampleAddLiqSize(SimuParams& params, std::mt19937& rng) {
 	std::exponential_distribution<> size_dist(1.0);
 	int size = (int)size_dist(rng) + 1;
 	return size;
@@ -30,7 +30,7 @@ int sampleAddLiqSize(const SimuParams& params, std::mt19937& rng) {
 
 
 
-double sampleAddLiqPrice(const SimuParams& params, Side side, double currentBestBid,
+double sampleAddLiqPrice(SimuParams& params, Side side, double currentBestBid,
 	double currentBestAsk, double minPrice, double maxPrice, std::vector<double> prices,
 	std::vector<Foyer>& foyers_state, std::mt19937& rng) {
 
@@ -48,10 +48,13 @@ double sampleAddLiqPrice(const SimuParams& params, Side side, double currentBest
 	}
 
 
+	const double& amplitudeBrownian = params.addLiq.priceDist.amplitudeBrownian;
+	const double& powDistParam = params.addLiq.priceDist.powDistParam;
+
 	// 2. Calcul des différentes densités sur le prix.
-	std::vector<double> brownian_density = density_brownian(foyers_state, prices, params);
+	std::vector<double> brownian_density = density_brownian(foyers_state, prices, amplitudeBrownian);
 	std::vector<double> power_density = density_power(side, currentBestBid, currentBestAsk,
-													  prices, params);
+													  prices, powDistParam);
 
 
 	// 3. Projection sur valid_prices

@@ -1,6 +1,7 @@
 #include "engine/OrderBook.h"
 #include "utils.h"
 #include "densities/densities_add_liq.h"
+#include "densities/densities_mod_liq.h"
 #include <algorithm>
 #include <cstdint>
 #include <vector>
@@ -16,7 +17,7 @@
 const double initialPrice = 20000.00;
 const double ticksize = 0.25;
 const int timestep = 5;
-const int depth = 120;
+const int depth = 60;
 const Side lastSide = Side::BID;
 const double PI = 3.141592653589793;
 
@@ -137,12 +138,17 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
     double S = currentBestAsk - currentBestBid;
     double q1Bid = 0;// getVolumeAt(...);
     double q1Ask = 0;// getVolumeAt(...);
+    double& p_death = gSimuParams.addLiq.priceDist.p_death;
+    double& p_birth = gSimuParams.addLiq.priceDist.p_birth;
+    double& sigma_init = gSimuParams.addLiq.priceDist.sigma_init;
+    double& mu_jitter = gSimuParams.addLiq.priceDist.mu_jitter;
+    double& sigma_jitter = gSimuParams.addLiq.priceDist.sigma_jitter;
 
     Side side = sampleAddLiqSide(gSimuParams, S, q1Ask, q1Bid, rng);
 
     int size = sampleAddLiqSize(gSimuParams, rng);
 
-    updateFoyerState(foyers_states, prices, rng, gSimuParams); // Update les foyers de liquidté
+    updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter); // Update les foyers de liquidté
     double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk, // Puis calcule le prix
         minPrice, maxPrice, prices, foyers_states, rng);
 
@@ -166,63 +172,44 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
 
 
 
-void OrderBook::modifyLiquidity() {
-    //std::cout << "Modify liquidity...\n";
+void OrderBook::cancelLiquidity(std::mt19937& rng) {
     if (currentBook.prices.empty()) return;
 
-    std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> price_dist(0, static_cast<int>(prices.size()) - 1);
-    double randomPrice = prices[price_dist(gen)];
 
-    auto& listOfOrders = currentBook.prices[randomPrice];
-    //std::cout << "Modifying orders at price: " << randomPrice << "\n";
+    updateFoyerState(foyers_states, prices, rng,
+        gSimuParams.removeLiq.p_death, gSimuParams.removeLiq.p_birth, gSimuParams.removeLiq.sigma_init,
+        gSimuParams.removeLiq.mu_jitter, gSimuParams.removeLiq.sigma_jitter);
+    double price = sampleRemoveLiqPrice(gSimuParams, currentBestBid, currentBestAsk, minPrice,
+                                        maxPrice, prices, foyers_states, rng);
+
+    auto& listOfOrders = currentBook.prices[price];
+
     if (!listOfOrders.empty()) {
-        // Sélection d'un ordre au hasard dans la liste
+        
         std::uniform_int_distribution<> order_dist(0, static_cast<int>(listOfOrders.size())- 1);
-        int randomIndex = order_dist(gen);
-        auto& randomOrder = listOfOrders[randomIndex];
+        int randomIndex = order_dist(rng);
+        listOfOrders.erase(listOfOrders.begin() + randomIndex);
 
-        // Décision aléatoire : cancel, volume_change, hold
-        std::discrete_distribution<> decision_dist({ 0.95, 0.05, 0.0 });
-        int decision = decision_dist(gen);
-
-        switch (decision) {
-        case 0: { // CANCEL
-            //std::cout << "Cancelling order ID: " << randomOrder.id << "\n";
-            listOfOrders.erase(listOfOrders.begin() + randomIndex);
-            break;
-        }
-
-        case 1: { // VOLUME CHANGE
-            std::geometric_distribution<> volume_dist(0.3);
-            int delta = volume_dist(gen) + 1;
-            double decrease_prob = 0.8;
-            std::bernoulli_distribution flip(decrease_prob);
-
-            if (flip(gen)) {
-                randomOrder.size -= delta;
-                //std::cout << "Decreased size of order ID: " << randomOrder.id << " to " << randomOrder.size << "\n";
-                if (randomOrder.size <= 0) {
-                    //std::cout << "Order size <= 0. Removing order\n";
-                    listOfOrders.erase(listOfOrders.begin() + randomIndex);
-                }
+        if (price == currentBestAsk && listOfOrders.size() == 0) {
+            auto remainingOrders = currentBook.prices[price];
+            while (remainingOrders.empty()) {
+                price += ticksize;
+                remainingOrders = currentBook.prices[price];
             }
-            else {
-                randomOrder.size += delta;
-                //std::cout << "Increased size of order ID: "<<randomOrder.id<<" to "<<randomOrder.size<<"\n";
-            }
-            break;
+            currentBestAsk = price;
         }
 
-        case 2: {
-            //std::cout << "Holding order ID: "<<randomOrder.id<<" (unchanged)\n";
-            break;
-        }
+        if (price == currentBestBid && listOfOrders.size() == 0) {
+            auto remainingOrders = currentBook.prices[price];
+            while (remainingOrders.empty()) {
+                price -= ticksize;
+                remainingOrders = currentBook.prices[price];
+            }
+            currentBestBid = price;
         }
     }
-    //std::cout<<">>> modifyLiquidity() completed.\n";
 }
+
 
 
 MarketOrder OrderBook::generateMarketOrder() {
@@ -328,7 +315,7 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
             //std::cout << "Ordre limite ajout à: " << limitOrder.price << ", size: " << limitOrder.size << " au " << sideToString(limitOrder.side) << "\n";
         }
         else if (eventType == 1) {
-            modifyLiquidity();
+            cancelLiquidity(rng);
         }
         else if (eventType == 2) {
             MarketOrder marketOrder = generateMarketOrder();

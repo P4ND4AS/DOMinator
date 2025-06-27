@@ -12,5 +12,15 @@ std::vector<double> density_power(
 	const double currentBestBid,
 	const double currentBestAsk,
 	const std::vector<double>& prices,
-	const SimuParams& params
+	const double& powDistParam
+
+);
+
+
+std::vector<double> density_power_globale(
+	const double currentBestBid,
+	const double currentBestAsk,
+	const std::vector<double>& prices,
+	const double& powDistParam
+
 );

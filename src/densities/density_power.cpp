@@ -9,11 +9,12 @@ std::vector<double> density_power(
 	const double currentBestBid,
 	const double currentBestAsk,
 	const std::vector<double>& prices,
-	const SimuParams& params
+	const double& powDistParam
+
 ) {
 	std::vector<double> f_density(prices.size(), 0.0);
 
-	double alpha = params.addLiq.priceDist.powDistParam;
+	double alpha = powDistParam;
 	if (side == Side::ASK) {
 		for (int i = 0; i < prices.size(); ++i) {
 			if (prices[i] <= currentBestBid) {
@@ -41,3 +42,40 @@ std::vector<double> density_power(
 	return f_density;
 }
 
+std::vector<double> density_power_globale(
+	const double currentBestBid,
+	const double currentBestAsk,
+	const std::vector<double>& prices,
+	const double& powDistParam
+
+) {
+
+	std::vector<double> f_density(prices.size(), 0.0);
+
+	double alpha = powDistParam;
+
+	std::vector<double> bidSideDensity(prices.size(), 0.0);
+	std::vector<double> askSideDensity(prices.size(), 0.0);
+
+
+	for (int i = 0; i < prices.size(); ++i) {
+		if (prices[i] <= currentBestBid) {
+			bidSideDensity[i] = std::pow(1.0 / (currentBestBid - prices[i] + ticksize), alpha);
+		}
+		else {
+			bidSideDensity[i] = std::pow(1.0 / (prices[i] - currentBestBid), alpha);
+		}
+	}
+	for (int i = 0; i < prices.size(); ++i) {
+		if (prices[i] < currentBestAsk) {
+			askSideDensity[i] = std::pow(1.0 / (currentBestAsk - prices[i]), alpha);
+		}
+		else {
+			askSideDensity[i] = std::pow(1.0 / (prices[i] - currentBestAsk + ticksize), alpha);
+		}
+	}
+	for (int i = 0; i < prices.size(); ++i) {
+		f_density[i] = bidSideDensity[i] + askSideDensity[i];
+	}
+	return f_density;
+}
