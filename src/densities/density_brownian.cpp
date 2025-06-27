@@ -11,7 +11,7 @@ void updateFoyerState(
 	std::vector<Foyer>& foyers_state,
 	const std::vector<double>& prices,
 	std::mt19937& rng,
-	const SimuParams params
+	const SimuParams& params
 ) {
 	// Supprimer les foyers morts
     std::bernoulli_distribution death_dist(params.addLiq.priceDist.p_death);
@@ -50,20 +50,27 @@ void updateFoyerState(
 std::vector<double> density_brownian(
     const std::vector<Foyer>& foyers_state,
     const std::vector<double>& prices,
-    SimuParams params
+    const SimuParams& params
 ) {
     double A = params.addLiq.priceDist.amplitudeBrownian;
     std::vector<double> f_density(prices.size(), 0.0);
 
     for (const Foyer& foyer : foyers_state) {
+        double mu = foyer.mu;
+        double sigma = foyer.sigma;
+        double coeff = A / (std::sqrt(2 * PI) * sigma);
+
         for (size_t i = 0; i < prices.size(); ++i) {
             double x = prices[i];
-            double mu = foyer.mu;
-            double sigma = foyer.sigma;
-            f_density[i] += A / (std::pow(std::atan(x - mu), 4) + sigma);
+            double expo = std::exp(-0.5 * std::pow((x - mu) / sigma, 2));
+            f_density[i] += coeff * expo;
         }
     }
-    
+
+    if (foyers_state.size() == 0) {
+        return f_density;
+    }
+
     double sum = std::accumulate(f_density.begin(), f_density.end(), 0.0);
     for (double& d : f_density) d /= sum;
 

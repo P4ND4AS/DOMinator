@@ -8,6 +8,7 @@ const extern double ticksize;
 const extern int timestep;
 const extern int depth;
 const extern Side lastSide;
+const extern double PI;
 
 struct BookSnapshot {
     std::map<double, std::vector<LimitOrder>> prices;  // Les ordres à chaque niveau de prix
@@ -33,6 +34,8 @@ public:
     void modifyLiquidity();
     void update(int n_iter, std::mt19937& rng);
 
+    std::vector<Foyer> getCurrentFoyersState() const { return foyers_states; }
+
 private:
     int orderIndex;
 
@@ -53,5 +56,6 @@ private:
 
     std::map<int64_t, BookSnapshot> bookHistory;
 
-    std::vector<Foyer> foyers_states = { {initialPrice + depth / 2, 0.01} };
+    std::vector<Foyer> foyers_states = { {gSimuParams.addLiq.priceDist.mu_init, 
+                                          gSimuParams.addLiq.priceDist.sigma_init } };
 };

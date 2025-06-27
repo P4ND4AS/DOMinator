@@ -86,7 +86,7 @@ int main() {
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
-    int nRows = 120;
+    int nRows = 121;
     int nCols = SCR_WIDTH * 0.8f;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(nRows, nCols);

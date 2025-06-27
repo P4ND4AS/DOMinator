@@ -18,6 +18,7 @@ const double ticksize = 0.25;
 const int timestep = 5;
 const int depth = 120;
 const Side lastSide = Side::BID;
+const double PI = 3.141592653589793;
 
 
 
@@ -141,8 +142,10 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
 
     int size = sampleAddLiqSize(gSimuParams, rng);
 
-    double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk,
+    updateFoyerState(foyers_states, prices, rng, gSimuParams); // Update les foyers de liquidté
+    double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk, // Puis calcule le prix
         minPrice, maxPrice, prices, foyers_states, rng);
+
 
     if (side == Side::BID && price > currentBestBid) {
         currentBestBid = price;
@@ -181,7 +184,7 @@ void OrderBook::modifyLiquidity() {
         auto& randomOrder = listOfOrders[randomIndex];
 
         // Décision aléatoire : cancel, volume_change, hold
-        std::discrete_distribution<> decision_dist({ 0.9, 0.05, 0.05 });
+        std::discrete_distribution<> decision_dist({ 0.95, 0.05, 0.0 });
         int decision = decision_dist(gen);
 
         switch (decision) {
@@ -315,7 +318,7 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
 
         double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
 
-        std::discrete_distribution<> event_dist({ p_add_liq, 0.005, 0.0004, 0.9896 });
+        std::discrete_distribution<> event_dist({ p_add_liq, 0.006, 0.0004, 0.9886 });
         int eventType = event_dist(rng);
 
         if (eventType == 0) {
