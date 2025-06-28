@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "UI/model_parameters.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -122,9 +123,7 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Test Simple");
-        ImGui::Text("Juste un test !");
-        ImGui::End();
+        DrawModelParametersUI(gSimuParams);
 
         BookSnapshot snapshot = ob.getCurrentBook();
         double last_price = snapshot.last_price;

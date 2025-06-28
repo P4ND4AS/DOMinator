@@ -151,6 +151,7 @@
     <ClCompile Include="src\SimuParams.cpp" />
     <ClCompile Include="src\Text\TextRenderer.cpp" />
     <ClCompile Include="src\Text\YAxis.cpp" />
+    <ClCompile Include="src\UI\model_parameters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Densities\densities_add_liq.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Text\TextRenderer.h" />
     <ClInclude Include="include\Text\YAxis.h" />
+    <ClInclude Include="include\UI\model_parameters.h" />
     <ClInclude Include="include\utils.h" />
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>

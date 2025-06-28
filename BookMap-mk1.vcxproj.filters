@@ -31,6 +31,12 @@
     <Filter Include="Fichiers sources\imgui">
       <UniqueIdentifier>{549e7de3-7d79-4227-8c23-d286f53f6cbf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Fichiers d%27en-tête\UI">
+      <UniqueIdentifier>{8b61f2bd-12a1-4118-81a6-71fdf169c1bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers sources\UI">
+      <UniqueIdentifier>{b8df0e89-7437-4433-b070-8d98bcefa1dc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad.c">
@@ -102,6 +108,9 @@
     <ClCompile Include="src\imgui\imgui_widgets.cpp">
       <Filter>Fichiers sources\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="src\UI\model_parameters.cpp">
+      <Filter>Fichiers sources\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\geometry\Quad.h">
@@ -157,6 +166,9 @@
     </ClInclude>
     <ClInclude Include="include\densities\density_utils.h">
       <Filter>Fichiers d%27en-tête\densities</Filter>
+    </ClInclude>
+    <ClInclude Include="include\UI\model_parameters.h">
+      <Filter>Fichiers d%27en-tête\UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
