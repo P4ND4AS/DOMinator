@@ -17,7 +17,7 @@
 const double initialPrice = 20000.00;
 const double ticksize = 0.25;
 const int timestep = 5;
-const int depth = 100;
+const int depth = 200;
 const Side lastSide = Side::BID;
 const double PI = 3.141592653589793;
 

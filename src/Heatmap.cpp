@@ -119,12 +119,14 @@ int Heatmap::price_to_row(double price) const {
 
 
 // --------- Mise à jour de la heatmap et du trait ---------
-void Heatmap::update(const BookSnapshot& snapshot) {
+void Heatmap::updateData(const BookSnapshot& snapshot) {
 	scrollLeft();
 	fillLastColumn(snapshot);
 	int row = price_to_row(snapshot.last_price);
 	last_price_row_history[cols - 1] = row;
-	//std::cout << "Ligne du last_price dans la matrice : " << row<<"\n";
+}
+
+void Heatmap::updateTexture() {
 	uploadToTexture();
 	uploadLastPriceTexture();
 }

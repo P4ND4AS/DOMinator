@@ -86,7 +86,7 @@ int main() {
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
-    int viewRows = 30;
+    int viewRows = 121;
     int nCols = SCR_WIDTH * 0.8f;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(viewRows, nCols);
@@ -113,7 +113,7 @@ int main() {
 
         // --- Simulation : update uniquement si pas en pause ---
         if (!isPaused) {
-            heatmap.update(snapshot);
+            heatmap.updateData(snapshot);
 
             if (iter % 3 == 0) {
                 ob.update(12000, rng);
@@ -125,6 +125,7 @@ int main() {
         // --- Rendu graphique (toujours affiché, même en pause) ---
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        heatmap.updateTexture();
         heatmap.render(heatmapShader, quad, heatmapModel);
 
         // Affichage du prix
