@@ -12,7 +12,8 @@ void drawYAxis(
     int windowWidth, int windowHeight,
     TextRenderer& textRenderer,
     Shader& textShader,
-    Quad& textQuad
+    Quad& textQuad,
+    int offset
 ) {
     // Paramètres axe Y
     float yAxisX = heatmapX + heatmapWidth + windowWidth / 100; // Petit offset pour pas être collé collé
@@ -24,7 +25,7 @@ void drawYAxis(
 
     for (int i = 0; i < nLabels; ++i) {
         int row = i * (nRows - 1) / (nLabels - 1);
-        double price = initialPrice - ((nRows - 1) / 2 - row) * ticksize;
+        double price = initialPrice - ((nRows - 1) / 2 - (row+offset)) * ticksize;
 
         float y_ndc = (float(row) / float(nRows - 1));
         float y_px = yAxisY + y_ndc * heatmapHeight - i * glyphHeightPx / nLabels;

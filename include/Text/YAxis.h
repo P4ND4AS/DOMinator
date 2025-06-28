@@ -10,5 +10,6 @@ void drawYAxis(
     int windowWidth, int windowHeight,
     TextRenderer& textRenderer,
     Shader& textShader,
-    Quad& textQuad
+    Quad& textQuad,
+    int offset
 );

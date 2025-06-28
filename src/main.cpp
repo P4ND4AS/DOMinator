@@ -78,15 +78,15 @@ int main() {
     }
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // Key handling
+    // Key and mouse handling
     glfwSetKeyCallback(window, key_callback);
-
+    glfwSetScrollCallback(window, scroll_callback);
 
     Quad quad;
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
-    int viewRows = 121;
+    int viewRows = 122;
     int nCols = SCR_WIDTH * 0.8f;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(viewRows, nCols);
@@ -155,7 +155,8 @@ int main() {
             windowWidth, windowHeight,
             textRenderer,
             textShader,
-            quad
+            quad,
+            heatmap.offset
         );
 
         // --- Overlay "PAUSE" si besoin ---

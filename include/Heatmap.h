@@ -37,6 +37,11 @@ public:
 	int price_to_row(double price) const;
 
 	int offset = 0;
+	void clampOffset() {
+		int minOffset = -(M - view_rows) / 2;
+		int maxOffset = (M - view_rows) / 2;
+		offset = std::clamp(offset, minOffset, maxOffset);
+	}
 
 private:
 
