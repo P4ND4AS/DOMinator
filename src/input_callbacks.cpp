@@ -14,8 +14,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             //Récupérer le pointeur de la heatmap
             Heatmap* heatmap = static_cast<Heatmap*>(glfwGetWindowUserPointer(window));
             if (heatmap) {
-                int delta = (key == GLFW_KEY_UP) ? 5 : -5;
-                heatmap->offset += delta;
+                //int delta = (key == GLFW_KEY_UP) ? 5 : -5;
+                //heatmap->offset += delta;
+               
             }
         }
     }

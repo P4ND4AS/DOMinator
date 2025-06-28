@@ -93,8 +93,6 @@ int main() {
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
-    glfwSetWindowUserPointer(window, &heatmap);
-
     // Text
     Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
 
@@ -119,7 +117,7 @@ int main() {
                 ob.update(12000, rng);
             }
             iter++;
-            
+
         }
 
         // --- Rendu graphique (toujours affiché, même en pause) ---
@@ -147,10 +145,10 @@ int main() {
         drawYAxis(
             10,
             nRows,
-            heatmapX,   
-            heatmapY,                  
-            heatmapWidth,                        
-            heatmapHeight,             
+            heatmapX,
+            heatmapY,
+            heatmapWidth,
+            heatmapHeight,
             windowWidth, windowHeight,
             textRenderer,
             textShader,
