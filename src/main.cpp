@@ -86,12 +86,14 @@ int main() {
     TextRenderer textRenderer(fontPath, 48);
 
     // Heatmap
-    int nRows = 121;
+    int viewRows = 30;
     int nCols = SCR_WIDTH * 0.8f;
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
-    Heatmap heatmap(nRows, nCols);
+    Heatmap heatmap(viewRows, nCols);
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
+
+    glfwSetWindowUserPointer(window, &heatmap);
 
     // Text
     Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
@@ -144,7 +146,7 @@ int main() {
         //Affichage de l'axe Y
         drawYAxis(
             10,
-            nRows,
+            viewRows,
             heatmapX,
             heatmapY,
             heatmapWidth,

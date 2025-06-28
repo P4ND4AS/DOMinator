@@ -4,7 +4,7 @@
 #include <algorithm>
 
 Heatmap::Heatmap(int r, int c)
-	: rows(r), cols(c), data(r, std::vector<float>(c, 0.0f)),
+	: view_rows(r), cols(c), data(M, std::vector<float>(c, 0.0f)),
 	last_price_row_history(c, 0.0f)
 {
 	createTexture();
@@ -19,7 +19,7 @@ Heatmap::~Heatmap() {
 
 void Heatmap::printHeatMap() const {
 
-	for (int i = 0; i < rows; ++i) {
+	for (int i = 0; i < M; ++i) {
 		for (int j = 0; j < cols; ++j) {
 			std::cout << data[i][j] << " ";
 		}
@@ -31,27 +31,27 @@ void Heatmap::printHeatMap() const {
 // -------- Création et upload de la texture 2D (heatmap) --------
 void Heatmap::createTexture() {
 	std::vector<float> linearData;
-	linearData.reserve(rows * cols);
-	for (int r = 0; r < rows; ++r)
+	linearData.reserve(M * cols);
+	for (int r = (M-view_rows)/2; r < (M+view_rows)/2; ++r)
 		for (int c = 0; c < cols; ++c)
-			linearData.push_back(data[r][c]);
+			linearData.push_back(data[r+offset][c]);
 
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cols, rows, 0, GL_RED, GL_FLOAT, linearData.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cols, view_rows, 0, GL_RED, GL_FLOAT, linearData.data());
 }
 
 void Heatmap::uploadToTexture() {
 	std::vector<float> linearData;
-	linearData.reserve(rows * cols);
-	for (int r = 0; r < rows; ++r)
+	linearData.reserve(M * cols);
+	for (int r = (M - view_rows) / 2; r < (M + view_rows) / 2; ++r)
 		for (int c = 0; c < cols; ++c)
-			linearData.push_back(data[r][c]);
+			linearData.push_back(data[r+offset][c]);
 
 	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RED, GL_FLOAT, linearData.data());
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cols, view_rows, GL_RED, GL_FLOAT, linearData.data());
 }
 
 
@@ -60,8 +60,8 @@ void Heatmap::createLastPriceTexture() {
 	// Suppose: last_price_row_history contient la ligne du trait pour chaque colonne (taille = cols)
 	std::vector<float> normed(cols);
 	for (int c = 0; c < cols; ++c) {
-		// Normalise la ligne du trait entre 0 et 1
-		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
+		normed[c] = float(last_price_row_history[c] - ((M - view_rows) / 2) - offset) / float(view_rows - 1);
+		normed[c] = std::clamp(normed[c], 0.0f, 1.0f);
 	}
 
 	glGenTextures(1, &last_price_textureID);
@@ -74,7 +74,8 @@ void Heatmap::createLastPriceTexture() {
 void Heatmap::uploadLastPriceTexture() {
 	std::vector<float> normed(cols);
 	for (int c = 0; c < cols; ++c) {
-		normed[c] = float(last_price_row_history[c]) / float(rows - 1);
+		normed[c] = float(last_price_row_history[c] - ((M - view_rows) / 2) - offset) / float(view_rows - 1);
+		normed[c] = std::clamp(normed[c], 0.0f, 1.0f);
 	}
 
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
@@ -84,7 +85,7 @@ void Heatmap::uploadLastPriceTexture() {
 // --------- Logique de la heatmap ---------
 
 void Heatmap::scrollLeft() {
-	for (int r = 0; r < rows; ++r)
+	for (int r = 0; r < M; ++r)
 		for (int c = 0; c < cols - 1; ++c)
 			data[r][c] = data[r][c + 1];
 
@@ -94,7 +95,7 @@ void Heatmap::scrollLeft() {
 
 void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 
-	for (int r = 0; r < rows; ++r) {
+	for (int r = 0; r < M; ++r) {
 		double price_level = min_price + r * ticksize;
 		float volume = 0.0f;
 
@@ -112,8 +113,8 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 // Convertit le prix en numéro de ligne
 int Heatmap::price_to_row(double price) const {
 	double norm = (price - min_price) / (max_price - min_price);
-	int row = static_cast<int>(norm * (rows - 1));
-	return std::clamp(row, 0, rows - 1);
+	int row = static_cast<int>(norm * (M - 1));
+	return std::clamp(row, 0, M - 1);
 }
 
 
@@ -138,7 +139,7 @@ void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& mo
 	shader.setInt("heatmap", 0);
 	shader.setInt("last_price_line", 1);
 	shader.setInt("cols", cols);
-	shader.setInt("rows", rows);
+	shader.setInt("rows", view_rows);
 
 	quad.render(shader, model);
 }
