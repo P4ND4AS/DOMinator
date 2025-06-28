@@ -4,6 +4,9 @@
 #include "../include/text/TextRenderer.h"
 #include "../include/input_callbacks.h"
 #include "../include/text/YAxis.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -82,6 +85,16 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    // Initialisation de ImGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 130");
+
     Quad quad;
     TextRenderer textRenderer(fontPath, 48);
 
@@ -103,6 +116,15 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
         glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+
+        // --- Démarre une nouvelle frame ImGui ---
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Test Simple");
+        ImGui::Text("Juste un test !");
+        ImGui::End();
 
         BookSnapshot snapshot = ob.getCurrentBook();
         double last_price = snapshot.last_price;
@@ -172,6 +194,15 @@ int main() {
             );
         }
 
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
         glfwSwapBuffers(window);
         glfwPollEvents();
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -184,5 +215,10 @@ int main() {
     textShader.~Shader();
     textRenderer.~TextRenderer();
     glfwTerminate();
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     return 0;
 }

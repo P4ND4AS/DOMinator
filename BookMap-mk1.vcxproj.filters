@@ -28,6 +28,9 @@
     <Filter Include="Fichiers sources\text">
       <UniqueIdentifier>{7a67a81b-46ee-4f09-aacc-3b852a5a3521}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Fichiers sources\imgui">
+      <UniqueIdentifier>{549e7de3-7d79-4227-8c23-d286f53f6cbf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad.c">
@@ -80,6 +83,24 @@
     </ClCompile>
     <ClCompile Include="src\densities\density_utils.cpp">
       <Filter>Fichiers sources\densities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui_draw.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui_impl_glfw.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui_tables.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imgui\imgui_widgets.cpp">
+      <Filter>Fichiers sources\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
