@@ -168,6 +168,7 @@ void Heatmap::ResampleHeatmapForWindow(int newCols) {
 		}
 		last_price_row_history[newCol] = oldlast_price_row_history[oldCol];
 	}
+
 	cols = newCols;
 
 
