@@ -1,42 +1,81 @@
 #include "UI/model_parameters.h"
 #include "imgui.h"
 
-void DrawModelParametersUI(SimuParams& params) {
+// --- Tableaux de descripteurs (AddLiq/PriceDist) ---
+static DoubleParamDesc addLiqPriceDistParams[] = {
+    { "mu_jitter", &gSimuParams.addLiq.priceDist.mu_jitter, &gSimuParamBounds.addLiq.priceDist.mu_jitter },
+    { "mu_init", &gSimuParams.addLiq.priceDist.mu_init, &gSimuParamBounds.addLiq.priceDist.mu_init },
+    { "p_birth", &gSimuParams.addLiq.priceDist.p_birth, &gSimuParamBounds.addLiq.priceDist.p_birth },
+    { "p_death", &gSimuParams.addLiq.priceDist.p_death, &gSimuParamBounds.addLiq.priceDist.p_death },
+    { "sigma_jitter", &gSimuParams.addLiq.priceDist.sigma_jitter, &gSimuParamBounds.addLiq.priceDist.sigma_jitter },
+    { "sigma_init", &gSimuParams.addLiq.priceDist.sigma_init, &gSimuParamBounds.addLiq.priceDist.sigma_init },
+    { "amplitudeBrownian", &gSimuParams.addLiq.priceDist.amplitudeBrownian, &gSimuParamBounds.addLiq.priceDist.amplitudeBrownian },
+    { "powDistParam", &gSimuParams.addLiq.priceDist.powDistParam, &gSimuParamBounds.addLiq.priceDist.powDistParam },
+    { "weight_brownian", &gSimuParams.addLiq.priceDist.weight_brownian, &gSimuParamBounds.addLiq.priceDist.weight_brownian },
+    { "weight_power", &gSimuParams.addLiq.priceDist.weight_power, &gSimuParamBounds.addLiq.priceDist.weight_power },
+};
+static constexpr int NB_ADDLIQ_PARAMS = sizeof(addLiqPriceDistParams) / sizeof(DoubleParamDesc);
+
+// --- Tableaux de descripteurs (RemoveLiq) ---
+static DoubleParamDesc removeLiqParams[] = {
+    { "mu_jitter##remove", &gSimuParams.removeLiq.mu_jitter, &gSimuParamBounds.removeLiq.mu_jitter },
+    { "mu_init##remove", &gSimuParams.removeLiq.mu_init, &gSimuParamBounds.removeLiq.mu_init },
+    { "p_birth##remove", &gSimuParams.removeLiq.p_birth, &gSimuParamBounds.removeLiq.p_birth },
+    { "p_death##remove", &gSimuParams.removeLiq.p_death, &gSimuParamBounds.removeLiq.p_death },
+    { "sigma_jitter##remove", &gSimuParams.removeLiq.sigma_jitter, &gSimuParamBounds.removeLiq.sigma_jitter },
+    { "sigma_init##remove", &gSimuParams.removeLiq.sigma_init, &gSimuParamBounds.removeLiq.sigma_init },
+    { "amplitudeBrownian##remove", &gSimuParams.removeLiq.amplitudeBrownian, &gSimuParamBounds.removeLiq.amplitudeBrownian },
+    { "powDistParam##remove", &gSimuParams.removeLiq.powDistParam, &gSimuParamBounds.removeLiq.powDistParam },
+    { "weight_brownian##remove", &gSimuParams.removeLiq.weight_brownian, &gSimuParamBounds.removeLiq.weight_brownian },
+    { "weight_power##remove", &gSimuParams.removeLiq.weight_power, &gSimuParamBounds.removeLiq.weight_power },
+};
+static constexpr int NB_REMOVELIQ_PARAMS = sizeof(removeLiqParams) / sizeof(DoubleParamDesc);
+
+// --- Tableaux de descripteurs (MarketOrder) ---
+static DoubleParamDesc marketOrderParams[] = {
+    { "e", &gSimuParams.marketOrder.e, &gSimuParamBounds.marketOrder.e }
+};
+static constexpr int NB_MARKETORDER_PARAMS = sizeof(marketOrderParams) / sizeof(DoubleParamDesc);
+
+
+
+
+// --- Fonction factorisée d'affichage UI ---
+void DrawModelParametersUI(SimuParams& params, const SimuParamBounds& bounds) {
     if (ImGui::Begin("Paramètres Simulation")) {
 
         if (ImGui::CollapsingHeader("Add Liquidity")) {
             if (ImGui::TreeNode("Price Distribution")) {
-                ImGui::InputDouble("mu_jitter", &params.addLiq.priceDist.mu_jitter, 0.01, 0.1, "%.6f");
-                ImGui::InputDouble("mu_init", &params.addLiq.priceDist.mu_init);
-                ImGui::InputDouble("p_birth", &params.addLiq.priceDist.p_birth, 0.0f, 0.001f, "%.6f");
-                ImGui::InputDouble("p_death", &params.addLiq.priceDist.p_death, 0.0f, 0.001f, "%.6f");
-                ImGui::InputDouble("sigma_jitter", &params.addLiq.priceDist.sigma_jitter, 0.0f, 0.3f);
-                ImGui::InputDouble("sigma_init", &params.addLiq.priceDist.sigma_init);
-                ImGui::InputDouble("amplitudeBrownian", &params.addLiq.priceDist.amplitudeBrownian, 0.0f, 2.0f);
-                ImGui::InputDouble("powDistParam", &params.addLiq.priceDist.powDistParam, 0.0f, 2.0f);
-                ImGui::InputDouble("weight_brownian", &params.addLiq.priceDist.weight_brownian, 0.0f, 1.0f);
-                ImGui::InputDouble("weight_power", &params.addLiq.priceDist.weight_power, 0.0f, 1.0f);
+                for (int i = 0; i < NB_ADDLIQ_PARAMS; ++i) {
+                    ImGui::SliderScalar(addLiqPriceDistParams[i].label, ImGuiDataType_Double,
+                        addLiqPriceDistParams[i].value,
+                        &addLiqPriceDistParams[i].bounds->min,
+                        &addLiqPriceDistParams[i].bounds->max,
+                        addLiqPriceDistParams[i].format);
+                }
                 ImGui::TreePop();
             }
         }
 
         if (ImGui::CollapsingHeader("Remove Liquidity")) {
-            ImGui::InputDouble("mu_jitter##remove", &params.removeLiq.mu_jitter, 0.0f, 0.2f);
-            ImGui::InputDouble("mu_init##remove", &params.removeLiq.mu_init);
-            ImGui::InputDouble("p_birth##remove", &params.removeLiq.p_birth, 0.0f, 0.001f, "%.6f");
-            ImGui::InputDouble("p_death##remove", &params.removeLiq.p_death, 0.0f, 0.001f, "%.6f");
-            ImGui::InputDouble("sigma_jitter##remove", &params.removeLiq.sigma_jitter, 0.0f, 0.3f);
-            ImGui::InputDouble("sigma_init##remove", &params.removeLiq.sigma_init);
-            ImGui::InputDouble("amplitudeBrownian##remove", &params.removeLiq.amplitudeBrownian, 0.0f, 2.0f);
-            ImGui::InputDouble("powDistParam##remove", &params.removeLiq.powDistParam, 0.0f, 2.0f);
-            ImGui::InputDouble("weight_brownian##remove", &params.removeLiq.weight_brownian, 0.0f, 1.0f);
-            ImGui::InputDouble("weight_power##remove", &params.removeLiq.weight_power, 0.0f, 1.0f);
+            for (int i = 0; i < NB_REMOVELIQ_PARAMS; ++i) {
+                ImGui::SliderScalar(removeLiqParams[i].label, ImGuiDataType_Double,
+                    removeLiqParams[i].value,
+                    &removeLiqParams[i].bounds->min,
+                    &removeLiqParams[i].bounds->max,
+                    removeLiqParams[i].format);
+            }
         }
 
         if (ImGui::CollapsingHeader("Market Order")) {
-            ImGui::InputDouble("e", &params.marketOrder.e, 0.0f, 1.0f);
+            for (int i = 0; i < NB_MARKETORDER_PARAMS; ++i) {
+                ImGui::SliderScalar(marketOrderParams[i].label, ImGuiDataType_Double,
+                    marketOrderParams[i].value,
+                    &marketOrderParams[i].bounds->min,
+                    &marketOrderParams[i].bounds->max,
+                    marketOrderParams[i].format);
+            }
         }
     }
-
     ImGui::End();
 }

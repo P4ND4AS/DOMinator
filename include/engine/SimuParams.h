@@ -43,3 +43,52 @@ struct SimuParams {
 };
 
 extern SimuParams gSimuParams;
+
+
+// --------- BOUNDARIES FOR THE PARAMETERS ---------
+
+struct DoubleBounds {
+    double min, max;
+};
+
+struct PriceDistBounds {
+    DoubleBounds mu_jitter;
+    DoubleBounds mu_init;
+    DoubleBounds p_birth;
+    DoubleBounds p_death;
+    DoubleBounds sigma_jitter;
+    DoubleBounds sigma_init;
+    DoubleBounds amplitudeBrownian;
+    DoubleBounds powDistParam;
+    DoubleBounds weight_brownian;
+    DoubleBounds weight_power;
+};
+
+struct AddLiqBounds {
+    PriceDistBounds priceDist;
+};
+
+struct RemoveLiqBounds {
+    DoubleBounds mu_jitter;
+    DoubleBounds mu_init;
+    DoubleBounds p_birth;
+    DoubleBounds p_death;
+    DoubleBounds sigma_jitter;
+    DoubleBounds sigma_init;
+    DoubleBounds amplitudeBrownian;
+    DoubleBounds powDistParam;
+    DoubleBounds weight_brownian;
+    DoubleBounds weight_power;
+};
+
+struct MarketOrderBounds {
+    DoubleBounds e;
+};
+
+struct SimuParamBounds {
+    AddLiqBounds addLiq;
+    RemoveLiqBounds removeLiq;
+    MarketOrderBounds marketOrder;
+};
+
+extern SimuParamBounds gSimuParamBounds;

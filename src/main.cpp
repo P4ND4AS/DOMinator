@@ -122,8 +122,9 @@ int main() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
-        DrawModelParametersUI(gSimuParams);
+        DrawModelParametersUI(gSimuParams, gSimuParamBounds);
 
         BookSnapshot snapshot = ob.getCurrentBook();
         double last_price = snapshot.last_price;
@@ -137,7 +138,7 @@ int main() {
             heatmap.updateData(snapshot);
 
             if (iter % 3 == 0) {
-                ob.update(12000, rng);
+                ob.update(24000, rng);
             }
             iter++;
 

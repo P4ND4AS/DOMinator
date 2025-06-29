@@ -34,3 +34,40 @@ SimuParams gSimuParams = {
 		.e = 0.9
 	}
 };
+
+
+//--------------- BOUNDARIES VALUES --------------
+
+SimuParamBounds gSimuParamBounds = {
+	.addLiq = {
+		.priceDist = {
+			.mu_jitter = {0.0, 0.2},
+			.mu_init = {19990.0, 20010.0},
+			.p_birth = {0.0, 0.001},
+			.p_death = {0.0, 0.001},
+			.sigma_jitter = {0.0, 0.2},
+			.sigma_init = {0.0, 2.0},
+			.amplitudeBrownian = {0.0, 10.0},
+			.powDistParam = {0.0, 2.0},
+			.weight_brownian = {0.0, 2.0},
+			.weight_power = {0.0, 2.0},
+		},
+	},
+
+	.removeLiq = {
+		.mu_jitter = {0.0, 0.2},
+		.mu_init = {19990.0, 20010.0},
+		.p_birth = {0.0, 0.001},
+		.p_death = {0.0, 0.001},
+		.sigma_jitter = {0.0, 0.2},
+		.sigma_init = {0.0, 2.0},
+		.amplitudeBrownian = {0.0, 10.0},
+		.powDistParam = {0.0, 2.0},
+		.weight_brownian = {0.0, 2.0},
+		.weight_power = {0.0, 2.0},
+	},
+
+	.marketOrder = {
+		.e = {0.0, 2.0}
+	}
+};
