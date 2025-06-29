@@ -131,7 +131,8 @@ void Heatmap::updateTexture() {
 	uploadLastPriceTexture();
 }
 
-void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& model) {
+void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& model,
+					 int windowWidth, int windowHeight) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glActiveTexture(GL_TEXTURE1);

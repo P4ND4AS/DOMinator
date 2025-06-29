@@ -28,7 +28,8 @@ public:
 
 	void updateData(const BookSnapshot& snapshot);
 	void updateTexture();
-	void render(const Shader& shader, const Quad& quad, const glm::mat4& model);
+	void render(const Shader& shader, const Quad& quad, const glm::mat4& model,
+				int windowWidth, int windowHeight);
 
 	int getRows() const { return M; }
 	int getCols() const { return cols; }

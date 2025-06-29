@@ -9,6 +9,6 @@ out vec2 fragUV;
 
 void main()
 {
-    gl_Position = model * vec4(aPos, 0.0, 1.0); // Transformation par la matrice modèle
+    gl_Position = model * vec4(aPos, 0.0, 1.0);
     fragUV = aTexCoord;
 }

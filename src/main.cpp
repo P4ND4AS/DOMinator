@@ -87,9 +87,6 @@ int main() {
     }
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    int windowWidth, windowHeight;
-    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
-
     // Key and mouse handling
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
@@ -112,6 +109,8 @@ int main() {
     int nCols = static_cast<int>(SCR_WIDTH * 0.8f);
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(viewRows, nCols);
+
+
     glm::mat4 heatmapModel = glm::mat4(1.0f);
     heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
@@ -123,6 +122,8 @@ int main() {
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
+        int windowWidth, windowHeight;
+        glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
         // --- Démarre une nouvelle frame ImGui ---
         ImGui_ImplOpenGL3_NewFrame();
@@ -153,8 +154,15 @@ int main() {
         // --- Rendu graphique (toujours affiché, même en pause) ---
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // Paramètres heatmap
+        float heatmapX = 0.1f * windowWidth;
+        float heatmapY = 0.1f * windowHeight;
+        float heatmapWidth = static_cast<int>(0.8f * windowWidth);
+        float heatmapHeight = 0.8f * windowHeight;
+
         heatmap.updateTexture();
-        heatmap.render(heatmapShader, quad, heatmapModel);
+        heatmap.render(heatmapShader, quad, heatmapModel, windowWidth, windowHeight);
 
         // Affichage du prix
         textRenderer.drawText(
@@ -166,11 +174,8 @@ int main() {
             windowWidth, windowHeight,
             glm::vec3(1.0f, 1.0f, 1.0f)
         );
-        // Paramètres heatmap
-        float heatmapX = 0.1f * windowWidth;
-        float heatmapY = 0.1f * windowHeight;
-        float heatmapWidth = static_cast<int>(0.8f * windowWidth);
-        float heatmapHeight = 0.8f * windowHeight;
+
+
 
         //Affichage de l'axe Y
         drawYAxis(

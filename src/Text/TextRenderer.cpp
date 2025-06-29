@@ -87,11 +87,17 @@ void TextRenderer::drawText(Shader& shader, const std::string& text, float x, fl
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	glm::mat4 projection = glm::ortho(
+		0.0f, float(windowWidth),      // gauche, droite
+		0.0f, float(windowHeight),     // bas, haut
+		-1.0f, 1.0f                   // near, far
+	);
+
 	shader.use();
 	shader.setVec3("textColor", color);
+	shader.setMat4("projection", projection);
 
 	float xCursor = x;
-	float aspect = 1.0f;//static_cast<float>(windowWidth) / windowHeight;
 	for (char c : text) {
 		auto it = glyphs_.find(c);
 		if (it == glyphs_.end()) continue;
@@ -104,19 +110,11 @@ void TextRenderer::drawText(Shader& shader, const std::string& text, float x, fl
 		float w = glyph.width * scale;
 		float h = glyph.height * scale;
 
-		// Conversion pixels -> NDC [-1, 1]
-		// L'origine (0, 0) est en bas à gauche dans OpenGL
-		float xpos_ndc = (2.0f * xpos / windowWidth - 1.0f) * aspect;
-		float ypos_ndc = 2.0f * ypos / windowHeight - 1.0f;
-
-
-		float w_ndc = 2.0f * w / windowWidth * aspect;
-		float h_ndc = 2.0f * h / windowHeight;
-
-		// Matrice modèle pour le quad [-1, 1]
+		// Matrice modèle en pixels (plus de conversion NDC !)
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(xpos_ndc + w_ndc / 2.0f, ypos_ndc + h_ndc / 2.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(w_ndc / 2.0f, h_ndc / 2.0f, 1.0f));
+		// D'abord scale par la moitié
+		model = glm::translate(model, glm::vec3(xpos + w / 2.0f, ypos + h / 2.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(w / 2.0f, h / 2.0f, 1.0f));
 
 		// Bind la texture du glyph
 		glActiveTexture(GL_TEXTURE0);
