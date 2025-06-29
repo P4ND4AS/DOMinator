@@ -91,6 +91,7 @@ void TextRenderer::drawText(Shader& shader, const std::string& text, float x, fl
 	shader.setVec3("textColor", color);
 
 	float xCursor = x;
+	float aspect = 1.0f;//static_cast<float>(windowWidth) / windowHeight;
 	for (char c : text) {
 		auto it = glyphs_.find(c);
 		if (it == glyphs_.end()) continue;
@@ -105,11 +106,11 @@ void TextRenderer::drawText(Shader& shader, const std::string& text, float x, fl
 
 		// Conversion pixels -> NDC [-1, 1]
 		// L'origine (0, 0) est en bas à gauche dans OpenGL
-		float xpos_ndc = 2.0f * xpos / windowWidth - 1.0f;
+		float xpos_ndc = (2.0f * xpos / windowWidth - 1.0f) * aspect;
 		float ypos_ndc = 2.0f * ypos / windowHeight - 1.0f;
 
 
-		float w_ndc = 2.0f * w / windowWidth;
+		float w_ndc = 2.0f * w / windowWidth * aspect;
 		float h_ndc = 2.0f * h / windowHeight;
 
 		// Matrice modèle pour le quad [-1, 1]
