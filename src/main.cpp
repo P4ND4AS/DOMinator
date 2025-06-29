@@ -27,6 +27,11 @@ const unsigned int SCR_HEIGHT = 600;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
+
+    Heatmap* heatmap = static_cast<Heatmap*>(glfwGetWindowUserPointer(window));
+    if (heatmap) {
+        heatmap->ResampleHeatmapForWindow(static_cast<int>(width * 0.8));
+    }
 }
 
 std::random_device rd;
@@ -163,7 +168,7 @@ int main() {
         // Paramètres heatmap
         float heatmapX = 0.1f * windowWidth;
         float heatmapY = 0.1f * windowHeight;
-        float heatmapWidth = 0.8f * windowWidth;
+        float heatmapWidth = static_cast<int>(0.8f * windowWidth);
         float heatmapHeight = 0.8f * windowHeight;
 
         //Affichage de l'axe Y

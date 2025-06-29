@@ -141,7 +141,48 @@ void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& mo
 	shader.setInt("heatmap", 0);
 	shader.setInt("last_price_line", 1);
 	shader.setInt("cols", cols);
-	shader.setInt("rows", view_rows);
+	shader.setInt("M", M);
 
 	quad.render(shader, model);
+}
+
+void Heatmap::ResampleHeatmapForWindow(int newCols) {
+	// Sauvegarde de l'ancienne data
+	std::vector<std::vector<float>> oldData = data;
+	std::vector<float> oldlast_price_row_history = last_price_row_history;
+	int oldCols = cols;
+
+	// Redimensionnement au nouveau format
+	data.assign(M, std::vector<float>(newCols, 0.0f)); // M lignes, newCols colonnes, init à 0
+	last_price_row_history.assign(newCols, 0.0f);
+
+	int copyCount = std::min(oldCols, newCols);
+	int oldStart = oldCols - copyCount;
+	int newStart = newCols - copyCount;
+
+	for (int col = 0; col < copyCount; ++col) {
+		int oldCol = oldStart + col;
+		int newCol = newStart + col;
+		for (int row = 0; row < M; ++row) {
+			data[row][newCol] = oldData[row][oldCol];
+		}
+		last_price_row_history[newCol] = oldlast_price_row_history[oldCol];
+	}
+	cols = newCols;
+
+
+	if (glIsTexture(textureID)) {
+		glDeleteTextures(1, &textureID);
+	}
+	if (glIsTexture(last_price_textureID)) {
+		glDeleteTextures(1, &last_price_textureID);
+	}
+
+	createTexture();
+	createLastPriceTexture();
+
+	GLenum err = glGetError();
+	if (err != GL_NO_ERROR) {
+		std::cerr << "OpenGL error after texture creation: " << err << std::endl;
+	}
 }

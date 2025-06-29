@@ -43,6 +43,8 @@ public:
 		offset = std::clamp(offset, minOffset, maxOffset);
 	}
 
+	void ResampleHeatmapForWindow(int newCols);
+
 private:
 
 	GLuint textureID;
