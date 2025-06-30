@@ -114,6 +114,9 @@
     <ClCompile Include="src\renderDomHistogram.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="src\UI\buttonsForTrades.cpp">
+      <Filter>Fichiers sources\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\geometry\Quad.h">
@@ -176,6 +179,9 @@
     <ClInclude Include="include\renderDomHistogram.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
+    <ClInclude Include="include\UI\buttonsForTrades.h">
+      <Filter>Fichiers d%27en-tête\UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\heatmap.frag">
@@ -198,6 +204,12 @@
     </None>
     <None Include="README.md">
       <Filter>Fichiers sources</Filter>
+    </None>
+    <None Include="src\shaders\button.frag">
+      <Filter>Fichiers de ressources</Filter>
+    </None>
+    <None Include="src\shaders\button.vert">
+      <Filter>Fichiers de ressources</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -9,6 +9,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "UI/model_parameters.h"
 #include "renderDomHistogram.h"
+#include "UI/buttonsForTrades.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -121,6 +122,9 @@ int main() {
     // DOM
     Shader domShader("src/shaders/domBar.vert", "src/shaders/domBar.frag");
 
+    // Button to take a trade
+    Shader buttonShader("src/shaders/button.vert", "src/shaders/button.frag");
+
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
@@ -226,6 +230,11 @@ int main() {
         std::vector<float> normalizedDom = heatmap.getNormalizedDomData(heatmap.offset, viewRows);
         renderDomHistogram(normalizedDom, domX, heatmapY, heatmapHeight / viewRows, domWidth, projection,
             domShader, quad);
+
+        renderTradeButtonsAndHandleClicks(
+            window, buttonShader, textRenderer, textShader, quad, ob,
+            domX, domWidth, windowWidth, windowHeight
+        );
 
         // --- Overlay "PAUSE" si besoin ---
         if (isPaused) {

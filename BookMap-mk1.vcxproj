@@ -152,6 +152,7 @@
     <ClCompile Include="src\SimuParams.cpp" />
     <ClCompile Include="src\Text\TextRenderer.cpp" />
     <ClCompile Include="src\Text\YAxis.cpp" />
+    <ClCompile Include="src\UI\buttonsForTrades.cpp" />
     <ClCompile Include="src\UI\model_parameters.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,12 +173,15 @@
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Text\TextRenderer.h" />
     <ClInclude Include="include\Text\YAxis.h" />
+    <ClInclude Include="include\UI\buttonsForTrades.h" />
     <ClInclude Include="include\UI\model_parameters.h" />
     <ClInclude Include="include\utils.h" />
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="src\shaders\button.frag" />
+    <None Include="src\shaders\button.vert" />
     <None Include="src\shaders\domBar.frag" />
     <None Include="src\shaders\domBar.vert" />
     <None Include="src\shaders\text.frag" />
