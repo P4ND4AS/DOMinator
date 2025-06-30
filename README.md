@@ -1,4 +1,4 @@
-# BookMap-mk1
+# BookMap
 
 BookMap-mk1 is a C++ project designed for Windows, built and developed with Visual Studio (MSVC).  
 It uses OpenGL, GLFW, FreeType, and other libraries for graphics and font rendering.
