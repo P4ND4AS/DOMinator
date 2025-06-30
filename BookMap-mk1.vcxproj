@@ -147,6 +147,7 @@
     <ClCompile Include="src\input_callbacks.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\OrderBook.cpp" />
+    <ClCompile Include="src\renderDomHistogram.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
     <ClCompile Include="src\SimuParams.cpp" />
     <ClCompile Include="src\Text\TextRenderer.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="include\glad\glad.h" />
     <ClInclude Include="include\Heatmap.h" />
     <ClInclude Include="include\input_callbacks.h" />
+    <ClInclude Include="include\renderDomHistogram.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Text\TextRenderer.h" />
     <ClInclude Include="include\Text\YAxis.h" />
@@ -175,6 +177,8 @@
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\shaders\domBar.frag" />
+    <None Include="src\shaders\domBar.vert" />
     <None Include="src\shaders\text.frag" />
     <None Include="src\shaders\text.vert" />
     <None Include="src\shaders\heatmap.frag" />

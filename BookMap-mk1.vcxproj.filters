@@ -111,6 +111,9 @@
     <ClCompile Include="src\UI\model_parameters.cpp">
       <Filter>Fichiers sources\UI</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderDomHistogram.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\geometry\Quad.h">
@@ -170,6 +173,9 @@
     <ClInclude Include="include\UI\model_parameters.h">
       <Filter>Fichiers d%27en-tête\UI</Filter>
     </ClInclude>
+    <ClInclude Include="include\renderDomHistogram.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\heatmap.frag">
@@ -182,6 +188,12 @@
       <Filter>Fichiers de ressources</Filter>
     </None>
     <None Include="src\shaders\text.vert">
+      <Filter>Fichiers de ressources</Filter>
+    </None>
+    <None Include="src\shaders\domBar.frag">
+      <Filter>Fichiers de ressources</Filter>
+    </None>
+    <None Include="src\shaders\domBar.vert">
       <Filter>Fichiers de ressources</Filter>
     </None>
   </ItemGroup>

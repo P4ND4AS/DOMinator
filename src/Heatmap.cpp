@@ -5,7 +5,7 @@
 
 Heatmap::Heatmap(int r, int c)
 	: view_rows(r), cols(c), data(M, std::vector<float>(c, 0.0f)),
-	last_price_row_history(c, 0.0f)
+	last_price_row_history(c, 0.0f), domData(M, 0.0f)
 {
 	createTexture();
 	createLastPriceTexture();
@@ -98,15 +98,34 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 	for (int r = 0; r < M; ++r) {
 		double price_level = min_price + r * ticksize;
 		float volume = 0.0f;
+		int sign = 0;
 
 		auto it = snapshot.prices.find(price_level);
 		if (it != snapshot.prices.end()) {
 			for (const auto& order : it->second) {
 				volume += order.size;
+				sign = (order.side == Side::BID) ? 1 : -1;
 			}
 		}
 		data[r][cols - 1] = volume;
+		domData[r] = volume * sign;
 	}
+}
+
+// Normaliser les données du DOM à l'écran
+std::vector<float> Heatmap::getNormalizedDomData(int offset, int view_rows) const {
+	std::vector<float> normalized;
+	float max_abs = 0.0f;
+
+	for (int r = (M - view_rows) / 2; r < (M + view_rows) / 2; ++r) {
+		max_abs = std::max(max_abs, std::abs(domData[r+offset]));
+	}
+	if (max_abs == 0.0f) max_abs = 1.0f;
+
+	for (int r = (M - view_rows) / 2; r < (M + view_rows) / 2; ++r) {
+		normalized.push_back(domData[r+offset] / max_abs);
+	}
+	return normalized;
 }
 
 
@@ -138,11 +157,18 @@ void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& mo
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_1D, last_price_textureID);
 
+	glm::mat4 projection = glm::ortho(
+		0.0f, float(windowWidth),
+		0.0f, float(windowHeight),
+		-1.0f, 1.0f
+	);
+
 	shader.use();
 	shader.setInt("heatmap", 0);
 	shader.setInt("last_price_line", 1);
 	shader.setInt("cols", cols);
 	shader.setInt("M", M);
+	shader.setMat4("projection", projection);
 
 	quad.render(shader, model);
 }

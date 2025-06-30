@@ -44,6 +44,10 @@ public:
 		offset = std::clamp(offset, minOffset, maxOffset);
 	}
 
+	// Pour l'histogramme du DOM
+	std::vector<float> domData;
+	std::vector<float> getNormalizedDomData(int offset, int view_rows) const;
+
 	void ResampleHeatmapForWindow(int newCols);
 
 private:

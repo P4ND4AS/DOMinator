@@ -8,6 +8,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "UI/model_parameters.h"
+#include "renderDomHistogram.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -30,7 +31,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
     Heatmap* heatmap = static_cast<Heatmap*>(glfwGetWindowUserPointer(window));
     if (heatmap) {
-        heatmap->ResampleHeatmapForWindow(static_cast<int>(0.8f*width));
+        heatmap->ResampleHeatmapForWindow(static_cast<int>(0.6f*width));
     }
 }
 
@@ -106,18 +107,17 @@ int main() {
 
     // Heatmap
     int viewRows = 121;
-    int nCols = static_cast<int>(SCR_WIDTH * 0.8f);
+    int nCols = static_cast<int>(SCR_WIDTH * 0.6f);
     Shader heatmapShader("src/shaders/heatmap.vert", "src/shaders/heatmap.frag");
     Heatmap heatmap(viewRows, nCols);
-
-
-    glm::mat4 heatmapModel = glm::mat4(1.0f);
-    heatmapModel = glm::scale(heatmapModel, glm::vec3(0.8f, 0.8f, 1.0f));
 
     glfwSetWindowUserPointer(window, &heatmap);
 
     // Text
     Shader textShader("src/shaders/text.vert", "src/shaders/text.frag");
+
+    // DOM
+    Shader domShader("src/shaders/domBar.vert", "src/shaders/domBar.frag");
 
 
     int iter = 1;
@@ -145,7 +145,7 @@ int main() {
             heatmap.updateData(snapshot);
 
             if (iter % 3 == 0) {
-                ob.update(24000, rng);
+                ob.update(22000, rng);
             }
             iter++;
 
@@ -155,11 +155,33 @@ int main() {
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Paramètres heatmap
-        float heatmapX = 0.1f * windowWidth;
+        // --- Paramètres d'affichage pour bien organiser chaque élément à l'écran ---
+        float padding = 4.0f;
+        float yAxisWidth = 70.0f;
+        float domWidth = 80.0f;
+
+        float heatmapX = 0.005f * windowWidth;
         float heatmapY = 0.1f * windowHeight;
-        float heatmapWidth = static_cast<int>(0.8f * windowWidth);
+        float heatmapWidth = windowWidth * 0.6f;
         float heatmapHeight = 0.8f * windowHeight;
+
+        float yAxisX = heatmapX + heatmapWidth + padding;
+        float domX = yAxisX + yAxisWidth + padding;
+
+        glm::mat4 heatmapModel = glm::mat4(1.0f);
+        // Translation : place le centre du quad à (heatmapX + heatmapWidth/2, heatmapY + heatmapHeight/2)
+        heatmapModel = glm::translate(heatmapModel, glm::vec3(
+            heatmapX + heatmapWidth / 2.0f,
+            heatmapY + heatmapHeight / 2.0f,
+            0.0f
+        ));
+        
+        // Scale : adapte la taille du quad à la taille voulue en pixels
+        heatmapModel = glm::scale(heatmapModel, glm::vec3(
+            heatmapWidth / 2.0f,
+            heatmapHeight / 2.0f,
+            1.0f
+        ));
 
         heatmap.updateTexture();
         heatmap.render(heatmapShader, quad, heatmapModel, windowWidth, windowHeight);
@@ -181,9 +203,9 @@ int main() {
         drawYAxis(
             10,
             viewRows,
-            heatmapX,
+            yAxisX,
             heatmapY,
-            heatmapWidth,
+            yAxisWidth,
             heatmapHeight,
             windowWidth, windowHeight,
             textRenderer,
@@ -191,6 +213,17 @@ int main() {
             quad,
             heatmap.offset
         );
+
+        // DOM
+        glm::mat4 projection = glm::ortho(
+            0.0f, float(windowWidth),
+            0.0f, float(windowHeight),
+            -1.0f, 1.0f
+        );
+
+        std::vector<float> normalizedDom = heatmap.getNormalizedDomData(heatmap.offset, viewRows);
+        renderDomHistogram(normalizedDom, domX, heatmapY, heatmapHeight / viewRows, domWidth, projection,
+            domShader, quad);
 
         // --- Overlay "PAUSE" si besoin ---
         if (isPaused) {

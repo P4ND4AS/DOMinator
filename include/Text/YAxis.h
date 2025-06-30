@@ -6,7 +6,7 @@
 void drawYAxis(
     int nLabels,
     int nRows,
-    float heatmapX, float heatmapY, float heatmapWidth, float heatmapHeight,
+    float yAxisX, float yAxisY, float yAxisWidth, float yAxisHeight,
     int windowWidth, int windowHeight,
     TextRenderer& textRenderer,
     Shader& textShader,
