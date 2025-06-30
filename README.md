@@ -1,6 +1,6 @@
-# BookMap-mk1
+# DOMinator
 
-BookMap-mk1 is a C++ project designed for Windows, built and developed with Visual Studio (MSVC).  
+DOMinator is a C++ project designed for Windows, built and developed with Visual Studio (MSVC).  
 It uses OpenGL, GLFW, FreeType, and other libraries for graphics and font rendering.
 
 ---
@@ -8,14 +8,14 @@ It uses OpenGL, GLFW, FreeType, and other libraries for graphics and font render
 ## 📸 Preview
 
 <p align="center">
-  <img src="assets/example.gif" alt="BookMap-mk1 demo" width="600"/>
+  <img src="assets/example.gif" alt="DOMinator demo" width="600"/>
 </p>
 
 
 
 ## Overview
 
-Order Book Heatmap Visualizer is a real-time OpenGL-based visualizer for market microstructure and order flow.  
+DOMinator is a real-time OpenGL-based visualizer for market microstructure and order flow.  
 It displays an interactive heatmap of the order book, complete with a price axis and a DOM (Depth Of Market) histogram.
 
 **Note:**  
@@ -33,10 +33,10 @@ I am learning C++ and modern OpenGL as I build this tool, so expect active devel
 
 ## Planned Features
 
-- Live data feed support (currently uses simulated data)
 - Improved color mapping and heatmap customization
 - Save/export heatmap images
 - More advanced UI options and statistics
+- Possibility for the user to take trades
 - Performance optimizations and code refactoring
 
 ## 🚀 Quick Start
