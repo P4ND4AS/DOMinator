@@ -4,6 +4,7 @@
 #include "engine/OrderBook.h"
 #include "../src/geometry/Quad.h"
 #include "Shader.h"
+#include <algorithm>
 
 
 class Heatmap {

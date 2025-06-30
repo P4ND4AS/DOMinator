@@ -19,6 +19,8 @@
 #include "Heatmap.h"
 #include <ft2build.h>
 #include <random>
+#include <iomanip>
+#include <sstream>
 
 
 #include FT_FREETYPE_H
