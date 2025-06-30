@@ -196,5 +196,8 @@
     <None Include="src\shaders\domBar.vert">
       <Filter>Fichiers de ressources</Filter>
     </None>
+    <None Include="README.md">
+      <Filter>Fichiers sources</Filter>
+    </None>
   </ItemGroup>
 </Project>

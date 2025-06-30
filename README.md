@@ -8,16 +8,10 @@ It uses OpenGL, GLFW, FreeType, and other libraries for graphics and font render
 ## 📸 Preview
 
 <p align="center">
-  <img src="assets/example.png" alt="BookMap-mk1 preview" width="600"/>
+  <img src="assets/example.gif" alt="BookMap-mk1 demo" width="600"/>
 </p>
 
-<!--
-To show a short video demo:
-- GIFs are supported in README.md on GitHub!  
-- You can embed a GIF like this:
-  <img src="assets/demo.gif" alt="BookMap-mk1 demo" width="600"/>
-- Tip: Keep GIFs short and under 10MB for fast loading.
--->
+
 
 ## Overview
 

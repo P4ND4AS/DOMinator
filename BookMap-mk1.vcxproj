@@ -177,6 +177,7 @@
     <ClInclude Include="src\geometry\Quad.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="src\shaders\domBar.frag" />
     <None Include="src\shaders\domBar.vert" />
     <None Include="src\shaders\text.frag" />
