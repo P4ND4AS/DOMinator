@@ -26,6 +26,7 @@ public:
 		float scale, Quad& quad, int windowWidth, int windowHeight, const glm::vec3& color);
 	
 	int getGlyphHeight(char c) const;
+	int getGlyphWidth(char c) const;
 
 private:
 	std::map<char, GlyphTexture> glyphs_;

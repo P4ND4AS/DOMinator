@@ -16,5 +16,6 @@ void renderTradeButtonsAndHandleClicks(
     Quad& quad,
     OrderBook& ob,
     float domX, float domWidth,
-    int windowWidth, int windowHeight
+    int windowWidth, int windowHeight,
+    glm::mat4 projection
 );

@@ -233,7 +233,7 @@ int main() {
 
         renderTradeButtonsAndHandleClicks(
             window, buttonShader, textRenderer, textShader, quad, ob,
-            domX, domWidth, windowWidth, windowHeight
+            domX, domWidth, windowWidth, windowHeight, projection
         );
 
         // --- Overlay "PAUSE" si besoin ---

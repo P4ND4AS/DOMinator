@@ -131,3 +131,9 @@ int TextRenderer::getGlyphHeight(char c) const {
 	if (it != glyphs_.end()) return it->second.height;
 	return 0;
 }
+
+int TextRenderer::getGlyphWidth(char c) const {
+	auto it = glyphs_.find(c);
+	if (it != glyphs_.end()) return it->second.width;
+	return 0;
+}

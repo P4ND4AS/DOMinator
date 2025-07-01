@@ -15,25 +15,25 @@ void renderTradeButtonsAndHandleClicks(
     Quad& quad,
     OrderBook& ob,
     float domX, float domWidth,
-    int windowWidth, int windowHeight
+    int windowWidth, int windowHeight,
+    glm::mat4 projection
 ) {
-    glm::ortho(0, windowWidth, 0, windowHeight, -1, 1);
+    
 
-    float x = 0.8f * windowWidth; // coin haut gauche voulu
-    float y = 0.8f * windowHeight;  // coin haut gauche voulu
-    float w = 70;
+    float x = domX + domWidth + 15.0f; 
+    float y = 0.8f * windowHeight;  
+    float w = 90;
     float h = 40;
-    float y_bas = windowHeight - y - h; // conversion haut->bas
+    float scale = 0.3;
 
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(x + w / 2, y_bas + h / 2, 0.0f));
+    model = glm::translate(model, glm::vec3(x + w / 2, y + h / 2, 0.0f));
     model = glm::scale(model, glm::vec3(w / 2, h / 2, 1.0f));
-    buttonShader.setMat4("model", model);
-    quad.render(buttonShader, model);
 
     // --- Rendu des quads avec couleurs ---
     buttonShader.use();
     buttonShader.setVec3("quadColor", glm::vec3(0.2f, 0.8f, 0.3f)); // Vert pour Buy
+    buttonShader.setMat4("projection", projection);
     quad.render(buttonShader, model);
 
 
@@ -41,12 +41,12 @@ void renderTradeButtonsAndHandleClicks(
     textRenderer.drawText(
         textShader,
         "Buy Market",
-        x + w / 2,
-        y_bas + h / 2 - 12, // ajuste -12 si besoin pour centrer verticalement
-        0.35f,
+        x + (w - textRenderer.getGlyphWidth('B') * scale * 12) / 2.0f,
+        y + (h-textRenderer.getGlyphHeight('0') * scale) / 2.0f,
+        scale,
         quad,
         windowWidth, windowHeight,
-        glm::vec3(1, 1, 1)
+        glm::vec3(0.0f, 0.0f, 0.0f)
     );
 
     // --- Gestion du clic souris ---
@@ -55,12 +55,12 @@ void renderTradeButtonsAndHandleClicks(
 
     bool mouseClicked = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
     static bool prevMousePressed = false;
-
     if (mouseClicked && !prevMousePressed) {
-        if (inRect(mouseX, mouseY, x, y, w, h)) {
-            // ACHAT MARKET
+        if (inRect(mouseX, windowHeight-mouseY, x, y, w, h)) {
+            // BUY MARKET
             MarketOrder order = ob.generateMarketOrder();
-            order.side = Side::BID;  // Force achat
+            order.side = Side::ASK;
+            order.size = 200;
             ob.processMarketOrder(order);
             std::cout << "[TRADE] Achat market size=" << order.size << std::endl;
         }
