@@ -132,8 +132,14 @@ int TextRenderer::getGlyphHeight(char c) const {
 	return 0;
 }
 
-int TextRenderer::getGlyphWidth(char c) const {
-	auto it = glyphs_.find(c);
-	if (it != glyphs_.end()) return it->second.width;
-	return 0;
+float TextRenderer::getTextWidth(const std::string& text, float scale) {
+	float width = 0.0f;
+	for (char c : text) {
+		auto it = glyphs_.find(c);
+		if (it == glyphs_.end()) continue;
+
+		const GlyphTexture& glyph = it->second;
+		width += (glyph.advance >> 6) * scale;
+	}
+	return width;
 }

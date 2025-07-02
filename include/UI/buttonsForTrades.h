@@ -7,15 +7,24 @@
 #include "engine/OrderBook.h"
 #include <glm/glm.hpp>
 
-// À appeler à chaque frame dans la boucle principale
-void renderTradeButtonsAndHandleClicks(
+
+struct TradeButton {
+    float x, y;
+    float width, height;
+    std::string label;
+
+    float r, g, b; // Couleur
+    bool isClicked = false;
+};
+
+
+void renderTradeButtons(
     GLFWwindow* window,
+    TradeButton button,
     Shader& buttonShader,
     TextRenderer& textRenderer,
     Shader& textShader,
     Quad& quad,
-    OrderBook& ob,
-    float domX, float domWidth,
     int windowWidth, int windowHeight,
     glm::mat4 projection
 );

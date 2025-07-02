@@ -22,7 +22,7 @@
 #include <random>
 #include <iomanip>
 #include <sstream>
-
+#include <algorithm>
 
 #include FT_FREETYPE_H
 
@@ -162,17 +162,24 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // --- Paramètres d'affichage pour bien organiser chaque élément à l'écran ---
-        float padding = 4.0f;
-        float yAxisWidth = 70.0f;
-        float domWidth = 80.0f;
+        float paddingDOM = 0.005f * windowWidth;
+        float yAxisWidth = (70.0f < 0.09f * windowWidth) ? 70.0f : 0.09f * windowWidth;
+        float domWidth = (80.0f < 0.1f * windowWidth) ? 80.0f : 0.1f * windowWidth;
 
         float heatmapX = 0.005f * windowWidth;
         float heatmapY = 0.1f * windowHeight;
         float heatmapWidth = windowWidth * 0.6f;
         float heatmapHeight = 0.8f * windowHeight;
 
-        float yAxisX = heatmapX + heatmapWidth + padding;
-        float domX = yAxisX + yAxisWidth + padding;
+        float yAxisX = heatmapX + heatmapWidth + paddingDOM;
+        float domX = yAxisX + yAxisWidth + paddingDOM;
+
+        // Trading Buttons
+        float buyMarketX = domX + domWidth + 0.02f * windowWidth;
+        float buyMarketY = 0.8f * windowHeight;
+        float buyMarketWidth = (80.0f < 0.1f * windowWidth) ? 80.0f : 0.1f * windowWidth;
+        float buyMarketHeight = 40.0f;
+        float paddingButtons = 8.0f;
 
         glm::mat4 heatmapModel = glm::mat4(1.0f);
         // Translation : place le centre du quad à (heatmapX + heatmapWidth/2, heatmapY + heatmapHeight/2)
@@ -231,10 +238,19 @@ int main() {
         renderDomHistogram(normalizedDom, domX, heatmapY, heatmapHeight / viewRows, domWidth, projection,
             domShader, quad);
 
-        renderTradeButtonsAndHandleClicks(
-            window, buttonShader, textRenderer, textShader, quad, ob,
-            domX, domWidth, windowWidth, windowHeight, projection
-        );
+        std::vector<TradeButton> tradeButtons = {
+            {buyMarketX, buyMarketY, buyMarketWidth, buyMarketHeight, "Buy Market", 0.0f, 0.7f, 0.1f},
+            {buyMarketX + buyMarketWidth + paddingButtons, buyMarketY, buyMarketWidth, buyMarketHeight, "Sell Market", 0.7f, 0.0f, 0.1f},
+            {buyMarketX, buyMarketY + buyMarketHeight + paddingButtons, 2.0f* buyMarketWidth + paddingButtons, buyMarketHeight, "CANCEL", 0.15f, 0.15f, 0.15f}
+        };
+
+        for(auto& button : tradeButtons) {
+            renderTradeButtons(
+                window, button, buttonShader, textRenderer, textShader, quad,
+                windowWidth, windowHeight, projection);
+        }
+
+ 
 
         // --- Overlay "PAUSE" si besoin ---
         if (isPaused) {
