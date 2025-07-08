@@ -138,18 +138,12 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
     double S = currentBestAsk - currentBestBid;
     double q1Bid = 0;// getVolumeAt(...);
     double q1Ask = 0;// getVolumeAt(...);
-    double& p_death = gSimuParams.addLiq.priceDist.p_death;
-    double& p_birth = gSimuParams.addLiq.priceDist.p_birth;
-    double& sigma_init = gSimuParams.addLiq.priceDist.sigma_init;
-    double& mu_jitter = gSimuParams.addLiq.priceDist.mu_jitter;
-    double& sigma_jitter = gSimuParams.addLiq.priceDist.sigma_jitter;
 
     Side side = sampleAddLiqSide(gSimuParams, S, q1Ask, q1Bid, rng);
 
     int size = sampleAddLiqSize(gSimuParams, rng);
-
-    updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter); // Update les foyers de liquidté
-    double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk, // Puis calcule le prix
+ 
+    double price = sampleAddLiqPrice(gSimuParams, side, currentBestBid, currentBestAsk,
         minPrice, maxPrice, prices, foyers_states, rng);
 
 
@@ -176,9 +170,6 @@ void OrderBook::cancelLiquidity(std::mt19937& rng) {
     if (currentBook.prices.empty()) return;
 
 
-    updateFoyerState(foyers_states, prices, rng,
-        gSimuParams.removeLiq.p_death, gSimuParams.removeLiq.p_birth, gSimuParams.removeLiq.sigma_init,
-        gSimuParams.removeLiq.mu_jitter, gSimuParams.removeLiq.sigma_jitter);
     double price = sampleRemoveLiqPrice(gSimuParams, currentBestBid, currentBestAsk, minPrice,
                                         maxPrice, prices, foyers_states, rng);
 
@@ -298,10 +289,16 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 
 
 void OrderBook::update(int n_iter, std::mt19937& rng) {
+    double& p_death = gSimuParams.addLiq.priceDist.p_death;
+    double& p_birth = gSimuParams.addLiq.priceDist.p_birth;
+    double& sigma_init = gSimuParams.addLiq.priceDist.sigma_init;
+    double& mu_jitter = gSimuParams.addLiq.priceDist.mu_jitter;
+    double& sigma_jitter = gSimuParams.addLiq.priceDist.sigma_jitter;
 
     for (int i = 0; i < n_iter; ++i) {
 
         currentTime += timestep;
+        updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter);
 
         double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
 

@@ -10,6 +10,7 @@
 #include "UI/model_parameters.h"
 #include "renderDomHistogram.h"
 #include "UI/buttonsForTrades.h"
+#include "AI/NeuralNetwork.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -125,6 +126,13 @@ int main() {
     // Button to take a trade
     Shader buttonShader("src/shaders/button.vert", "src/shaders/button.frag");
 
+    NeuralNetwork tradingAI({ 11, 10, 10, 3 });
+
+    // Variables pour suivre l'état précédent
+    float lastBestBid = ob.getCurrentBestBid();
+    float lastBestAsk = ob.getCurrentBestAsk();
+    float lastBidVolume = 0.0f;
+    float lastAskVolume = 0.0f;
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
@@ -152,9 +160,41 @@ int main() {
 
             if (iter % 3 == 0) {
                 ob.update(22000, rng);
+
+                auto inputs = prepareAIInputs(ob, snapshot, lastBestBid, 
+                            lastBestAsk, lastBidVolume, lastAskVolume);
+
+                tradingAI.aiState.lastOutputs = tradingAI.predict(inputs);
+                // Mise à jour du texte de décision
+                if (tradingAI.aiState.lastOutputs[0] > 0.7f) {
+                    tradingAI.aiState.lastDecision = "BUY";
+                }
+                else if (tradingAI.aiState.lastOutputs[1] > 0.6f) {
+                    tradingAI.aiState.lastDecision = "CANCEL";
+                }
+                else {
+                    tradingAI.aiState.lastDecision = "HOLD";
+                }
+                tradingAI.aiState.lastUpdateTime = static_cast<float>(glfwGetTime());
             }
             iter++;
 
+        }
+
+        // Last decision made by the AI
+        ImGui::Text("Last decision by AI");
+        ImGui::Text("  BUY:    %.2f", tradingAI.aiState.lastOutputs[0]);
+        ImGui::Text("  CANCEL: %.2f", tradingAI.aiState.lastOutputs[1]);
+        ImGui::Text("  HOLD:   %.2f", tradingAI.aiState.lastOutputs[2]);
+
+        if (tradingAI.aiState.lastDecision == "BUY") {
+            ImGui::TextColored(ImVec4(0, 1, 0, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
+        }
+        else if (tradingAI.aiState.lastDecision == "CANCEL") {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
+        }
+        else {
+            ImGui::TextColored(ImVec4(1, 1, 1, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
         }
 
         // --- Rendu graphique (toujours affiché, même en pause) ---
@@ -244,11 +284,11 @@ int main() {
             {buyMarketX, buyMarketY + buyMarketHeight + paddingButtons, 2.0f* buyMarketWidth + paddingButtons, buyMarketHeight, "CANCEL", 0.15f, 0.15f, 0.15f}
         };
 
-        for(auto& button : tradeButtons) {
+        /*for (auto& button : tradeButtons) {
             renderTradeButtons(
                 window, button, buttonShader, textRenderer, textShader, quad,
                 windowWidth, windowHeight, projection);
-        }
+        }*/
 
  
 

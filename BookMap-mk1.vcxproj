@@ -128,6 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AI\Layer.cpp" />
+    <ClCompile Include="src\AI\NeuralNetwork.cpp" />
+    <ClCompile Include="src\AI\Neuron.cpp" />
+    <ClCompile Include="src\AI\TradingAI.cpp" />
     <ClCompile Include="src\densities\densities_add_liq.cpp" />
     <ClCompile Include="src\densities\densities_market_order.cpp" />
     <ClCompile Include="src\densities\densities_mod_liq.cpp" />
@@ -156,6 +160,10 @@
     <ClCompile Include="src\UI\model_parameters.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\AI\Layer.h" />
+    <ClInclude Include="include\AI\NeuralNetwork.h" />
+    <ClInclude Include="include\AI\Neuron.h" />
+    <ClInclude Include="include\AI\TradingAI.h" />
     <ClInclude Include="include\Densities\densities_add_liq.h" />
     <ClInclude Include="include\Densities\densities_market_order.h" />
     <ClInclude Include="include\Densities\densities_mod_liq.h" />

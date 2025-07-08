@@ -36,6 +36,9 @@ public:
 
     std::vector<Foyer> getCurrentFoyersState() const { return foyers_states; }
 
+    double getCurrentBestAsk() const { return currentBestAsk; }
+    double getCurrentBestBid() const { return currentBestBid; }
+
 private:
     int orderIndex;
 

@@ -37,6 +37,12 @@
     <Filter Include="Fichiers sources\UI">
       <UniqueIdentifier>{b8df0e89-7437-4433-b070-8d98bcefa1dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Fichiers d%27en-tête\AI">
+      <UniqueIdentifier>{440aaa43-4fc9-4ecb-9402-420d125dfa9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fichiers sources\AI">
+      <UniqueIdentifier>{69b2d4f7-7c9c-4cbc-b875-8f1193701d76}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad.c">
@@ -117,6 +123,18 @@
     <ClCompile Include="src\UI\buttonsForTrades.cpp">
       <Filter>Fichiers sources\UI</Filter>
     </ClCompile>
+    <ClCompile Include="src\AI\Layer.cpp">
+      <Filter>Fichiers sources\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AI\NeuralNetwork.cpp">
+      <Filter>Fichiers sources\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AI\Neuron.cpp">
+      <Filter>Fichiers sources\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AI\TradingAI.cpp">
+      <Filter>Fichiers sources\AI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\geometry\Quad.h">
@@ -181,6 +199,18 @@
     </ClInclude>
     <ClInclude Include="include\UI\buttonsForTrades.h">
       <Filter>Fichiers d%27en-tête\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AI\Layer.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AI\NeuralNetwork.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AI\Neuron.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AI\TradingAI.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
