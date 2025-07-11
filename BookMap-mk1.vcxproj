@@ -186,6 +186,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="src\AI\configAI.json" />
     <None Include="src\shaders\button.frag" />
     <None Include="src\shaders\button.vert" />
     <None Include="src\shaders\domBar.frag" />

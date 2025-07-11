@@ -24,8 +24,7 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
-#include "AI/Conv2D.h"
-#include "AI/Activations.h"
+
 #include FT_FREETYPE_H
 
 const unsigned int SCR_WIDTH = 800;
@@ -127,34 +126,21 @@ int main() {
     // Button to take a trade
     Shader buttonShader("src/shaders/button.vert", "src/shaders/button.frag");
 
-    Eigen::MatrixXf input = Eigen::MatrixXf::Random(5, 5);
-    std::vector<Eigen::MatrixXf> kernels;
 
-    Eigen::MatrixXf k1(3, 3);
-    k1 << 1, 0, -1,
-        1, 0, -1,
-        1, 0, -1;
+    // ------------------- AI SETUP -------------------
+    AIConfig config = loadConfig("src/AI/configAI.json");    
+  
+    Eigen::MatrixXf M = Eigen::MatrixXf::Random(config.inputHeight, config.inputWidth);
 
-    Eigen::MatrixXf k2(3, 3);
-    k2 << -1, -1, -1,
-        0, 0, 0,
-        1, 1, 1;
+    PolicyValueNet net(config);
 
-    kernels.push_back(k1);
-    kernels.push_back(k2);
+    auto [policy, value] = net.forward(M);
+ 
+    std::cout << "(policy head):\n" << policy.transpose() << "\n";
+    std::cout << "(value head): " << value << "\n";
+    // ------------------------------------------------
 
-    std::cout<<"Input: "<<input<<"\n";
 
-    std::vector<Eigen::MatrixXf> conv_outputs = Conv2D::convolveMultiFilter(input, kernels, 1, 1, 1);
-
-    for (int i = 0; i < conv_outputs.size(); ++i) {
-        std::cout << "Output channel " << i << ":\n" << conv_outputs[i] << "\n\n";
-    }
-
-    applyReLU(conv_outputs);
-    for (int i = 0; i < conv_outputs.size(); ++i) {
-        std::cout << "Output channel " << i << ":\n" << conv_outputs[i] << "\n\n";
-    }
 
 
     int iter = 1;
@@ -277,12 +263,6 @@ int main() {
             {buyMarketX + buyMarketWidth + paddingButtons, buyMarketY, buyMarketWidth, buyMarketHeight, "Sell Market", 0.7f, 0.0f, 0.1f},
             {buyMarketX, buyMarketY + buyMarketHeight + paddingButtons, 2.0f* buyMarketWidth + paddingButtons, buyMarketHeight, "CANCEL", 0.15f, 0.15f, 0.15f}
         };
-
-        /*for (auto& button : tradeButtons) {
-            renderTradeButtons(
-                window, button, buttonShader, textRenderer, textShader, quad,
-                windowWidth, windowHeight, projection);
-        }*/
 
  
 

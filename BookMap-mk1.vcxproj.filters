@@ -235,5 +235,8 @@
     <None Include="src\shaders\button.vert">
       <Filter>Fichiers de ressources</Filter>
     </None>
+    <None Include="src\AI\configAI.json">
+      <Filter>Fichiers sources\AI</Filter>
+    </None>
   </ItemGroup>
 </Project>
