@@ -24,7 +24,8 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
-
+#include "AI/Conv2D.h"
+#include "AI/Activations.h"
 #include FT_FREETYPE_H
 
 const unsigned int SCR_WIDTH = 800;
@@ -126,13 +127,35 @@ int main() {
     // Button to take a trade
     Shader buttonShader("src/shaders/button.vert", "src/shaders/button.frag");
 
-    NeuralNetwork tradingAI({ 11, 10, 10, 3 });
+    Eigen::MatrixXf input = Eigen::MatrixXf::Random(5, 5);
+    std::vector<Eigen::MatrixXf> kernels;
 
-    // Variables pour suivre l'état précédent
-    float lastBestBid = ob.getCurrentBestBid();
-    float lastBestAsk = ob.getCurrentBestAsk();
-    float lastBidVolume = 0.0f;
-    float lastAskVolume = 0.0f;
+    Eigen::MatrixXf k1(3, 3);
+    k1 << 1, 0, -1,
+        1, 0, -1,
+        1, 0, -1;
+
+    Eigen::MatrixXf k2(3, 3);
+    k2 << -1, -1, -1,
+        0, 0, 0,
+        1, 1, 1;
+
+    kernels.push_back(k1);
+    kernels.push_back(k2);
+
+    std::cout<<"Input: "<<input<<"\n";
+
+    std::vector<Eigen::MatrixXf> conv_outputs = Conv2D::convolveMultiFilter(input, kernels, 1, 1, 1);
+
+    for (int i = 0; i < conv_outputs.size(); ++i) {
+        std::cout << "Output channel " << i << ":\n" << conv_outputs[i] << "\n\n";
+    }
+
+    applyReLU(conv_outputs);
+    for (int i = 0; i < conv_outputs.size(); ++i) {
+        std::cout << "Output channel " << i << ":\n" << conv_outputs[i] << "\n\n";
+    }
+
 
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
@@ -161,41 +184,12 @@ int main() {
             if (iter % 3 == 0) {
                 ob.update(22000, rng);
 
-                auto inputs = prepareAIInputs(ob, snapshot, lastBestBid, 
-                            lastBestAsk, lastBidVolume, lastAskVolume);
-
-                tradingAI.aiState.lastOutputs = tradingAI.predict(inputs);
-                // Mise à jour du texte de décision
-                if (tradingAI.aiState.lastOutputs[0] > 0.7f) {
-                    tradingAI.aiState.lastDecision = "BUY";
-                }
-                else if (tradingAI.aiState.lastOutputs[1] > 0.6f) {
-                    tradingAI.aiState.lastDecision = "CANCEL";
-                }
-                else {
-                    tradingAI.aiState.lastDecision = "HOLD";
-                }
-                tradingAI.aiState.lastUpdateTime = static_cast<float>(glfwGetTime());
             }
             iter++;
 
         }
 
-        // Last decision made by the AI
-        ImGui::Text("Last decision by AI");
-        ImGui::Text("  BUY:    %.2f", tradingAI.aiState.lastOutputs[0]);
-        ImGui::Text("  CANCEL: %.2f", tradingAI.aiState.lastOutputs[1]);
-        ImGui::Text("  HOLD:   %.2f", tradingAI.aiState.lastOutputs[2]);
-
-        if (tradingAI.aiState.lastDecision == "BUY") {
-            ImGui::TextColored(ImVec4(0, 1, 0, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
-        }
-        else if (tradingAI.aiState.lastDecision == "CANCEL") {
-            ImGui::TextColored(ImVec4(1, 0, 0, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
-        }
-        else {
-            ImGui::TextColored(ImVec4(1, 1, 1, 1), "=> %s", tradingAI.aiState.lastDecision.c_str());
-        }
+       
 
         // --- Rendu graphique (toujours affiché, même en pause) ---
         glClearColor(0.2f, 0.0f, 0.1f, 1.0f);

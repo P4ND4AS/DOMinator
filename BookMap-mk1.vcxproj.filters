@@ -123,13 +123,7 @@
     <ClCompile Include="src\UI\buttonsForTrades.cpp">
       <Filter>Fichiers sources\UI</Filter>
     </ClCompile>
-    <ClCompile Include="src\AI\Layer.cpp">
-      <Filter>Fichiers sources\AI</Filter>
-    </ClCompile>
     <ClCompile Include="src\AI\NeuralNetwork.cpp">
-      <Filter>Fichiers sources\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="src\AI\Neuron.cpp">
       <Filter>Fichiers sources\AI</Filter>
     </ClCompile>
     <ClCompile Include="src\AI\TradingAI.cpp">
@@ -200,16 +194,16 @@
     <ClInclude Include="include\UI\buttonsForTrades.h">
       <Filter>Fichiers d%27en-tête\UI</Filter>
     </ClInclude>
-    <ClInclude Include="include\AI\Layer.h">
-      <Filter>Fichiers d%27en-tête\AI</Filter>
-    </ClInclude>
     <ClInclude Include="include\AI\NeuralNetwork.h">
       <Filter>Fichiers d%27en-tête\AI</Filter>
     </ClInclude>
-    <ClInclude Include="include\AI\Neuron.h">
+    <ClInclude Include="include\AI\TradingAI.h">
       <Filter>Fichiers d%27en-tête\AI</Filter>
     </ClInclude>
-    <ClInclude Include="include\AI\TradingAI.h">
+    <ClInclude Include="include\AI\Conv2D.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\AI\Activations.h">
       <Filter>Fichiers d%27en-tête\AI</Filter>
     </ClInclude>
   </ItemGroup>
