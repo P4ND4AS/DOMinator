@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "engine/OrderBook.h"
+#include "Heatmap.h"
 
 enum Action { BUY_MARKET, SELL_MARKET, WAIT };
 
@@ -34,4 +35,36 @@ public:
 
 private:
 	std::vector<Experience> buffer;
+};
+
+
+// --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
+
+#include "NeuralNetwork.h"
+#include <random>
+
+class TradingEnvironment {
+public:
+    TradingEnvironment(OrderBook* book);
+
+    void reset();
+    void updateMarket(int n_iter, std::mt19937& rng);
+
+    std::vector<std::vector<float>> getObservation();
+    Eigen::VectorXf getAgentState() const;
+
+    float step(Action action, std::mt19937& rng);
+    bool isDone() const;
+    float getCumulativeReward() const;
+
+private:
+    OrderBook* orderBook;
+    Heatmap heatmap;
+    int timestep;
+    const int maxTimesteps;
+    bool episodeDone;
+    float cumulativeReward;
+
+    int currentPosition;   // -1 short, 0 flat, 1 long
+    double entryPrice = 0.0;
 };
