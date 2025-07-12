@@ -26,6 +26,8 @@ AIConfig loadConfig(const std::string& filename) {
     config.inputWidth = j["input_width"];
     config.denseLayerSize = j["dense_layer_size"];
     config.numActions = j["num_actions"];
+    config.agentInputSize = j["agent_input_size"];
+    config.agentHiddenSize = j["agent_hidden_size"];
 
     for (const auto& layer : j["cnn_layers"]) {
         config.convLayers.push_back({
@@ -117,6 +119,8 @@ Eigen::MatrixXf ConvLayer::applyActivation(const Eigen::MatrixXf& input) {
 }
 
 
+
+
 //------------ CONVOLUTIONAL NEURAL NETWORK ---------------
 
 CNN::CNN(const AIConfig& config)
@@ -175,11 +179,17 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
         std::exit(1);
     }
 
+    int agentInputSize = config.agentInputSize;
+    int agentHiddenSize = config.agentHiddenSize;
+
     int hiddenSize = config.denseLayerSize;
     int numActions = config.numActions;
 
+    agent_fc_weights = Eigen::MatrixXf::Random(agentHiddenSize, agentInputSize);
+    agent_fc_bias = Eigen::VectorXf::Random(agentHiddenSize);
+
     // Initialisation des poids et biais pour la couche fully connected
-    fc1_weights = Eigen::MatrixXf::Random(hiddenSize, flattenedSize);
+    fc1_weights = Eigen::MatrixXf::Random(hiddenSize, agentHiddenSize + flattenedSize);
     fc1_bias = Eigen::VectorXf::Random(hiddenSize);
 
     // Tête policy : génère une probabilité pour chaque action
@@ -194,12 +204,31 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
 
 
 
-std::pair<Eigen::VectorXf, float> PolicyValueNet::forward(const Eigen::MatrixXf& input) {
-    std::vector<Eigen::MatrixXf> inputChannels = { input }; // input canaux = 1
+std::pair<Eigen::VectorXf, float> PolicyValueNet::forward(const Eigen::MatrixXf& input_image,
+                            const Eigen::VectorXf& agent_state) {
+    std::vector<Eigen::MatrixXf> inputChannels = { input_image }; // input canaux = 1
 
     auto convOutput = cnn.forward(inputChannels);            
-    Eigen::VectorXf flat = cnn.flatten(convOutput);           
-    Eigen::VectorXf hidden = relu(fc1_weights * flat + fc1_bias); 
+    Eigen::VectorXf flat = cnn.flatten(convOutput);   
+    std::cout << "[CNN] Feature maps:\n";
+    for (const auto& fm : convOutput) {
+        std::cout << fm << "\n\n";
+    }
+    std::cout << "[Flattened] CNN output:\n" << flat.transpose() << "\n";
+
+    Eigen::VectorXf agent_features = relu(agent_fc_weights * agent_state + agent_fc_bias);
+    std::cout << "[Agent Input]:\n" << agent_state.transpose() << "\n";
+    std::cout << "[Agent Features after FC]:\n" << agent_features.transpose() << "\n";
+
+
+
+    // Concaténer
+    Eigen::VectorXf combined_input(flat.size() + agent_features.size());
+    combined_input << flat, agent_features;
+    std::cout << "[Combined Input] (CNN + Agent):\n" << combined_input.transpose() << "\n";
+
+
+    Eigen::VectorXf hidden = relu(fc1_weights * combined_input + fc1_bias);
 
     Eigen::VectorXf logits = policy_head_weights * hidden + policy_head_bias;
     Eigen::VectorXf policy = softmax(logits);

@@ -1,4 +1,6 @@
 {
+  "agent_input_size": 2,
+  "agent_hidden_size":  2,
   "cnn_layers": [
     {
       "in": 1,
@@ -13,17 +15,10 @@
       "kernel": 3,
       "stride": 1,
       "padding": 1
-    },
-    {
-      "in": 8,
-      "out": 16,
-      "kernel": 3,
-      "stride": 1,
-      "padding": 1
     }
   ],
-  "dense_layer_size": 64,
+  "dense_layer_size": 2,
   "num_actions": 3,
-  "input_height": 32,
-  "input_width": 64
+  "input_height": 4,
+  "input_width": 4
 }

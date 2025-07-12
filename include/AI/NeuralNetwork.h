@@ -18,6 +18,8 @@ struct ConvConfig {
 struct AIConfig {
 	int inputHeight;
 	int inputWidth;
+	int agentInputSize;
+	int agentHiddenSize;
 	std::vector<ConvConfig> convLayers;
 	int denseLayerSize;
 	int numActions;
@@ -77,9 +79,14 @@ class PolicyValueNet {
 public:
 	PolicyValueNet(const AIConfig& config);
 
-	std::pair<Eigen::VectorXf, float> forward(const Eigen::MatrixXf& input);
+	std::pair<Eigen::VectorXf, float> forward(const Eigen::MatrixXf& input_image,
+		const Eigen::VectorXf& agent_state);
+
 
 private:
+	Eigen::MatrixXf agent_fc_weights;
+	Eigen::VectorXf agent_fc_bias;
+
 	CNN cnn;
 
 	Eigen::MatrixXf fc1_weights;
