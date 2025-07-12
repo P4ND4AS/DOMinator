@@ -142,7 +142,7 @@ int main() {
 
 
 
-
+    /*
     int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
@@ -303,7 +303,7 @@ int main() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext();*/
 
     return 0;
 }

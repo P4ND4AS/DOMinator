@@ -159,7 +159,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\AI\Activations.h" />
-    <ClInclude Include="include\AI\Conv2D.h" />
     <ClInclude Include="include\AI\NeuralNetwork.h" />
     <ClInclude Include="include\AI\TradingAI.h" />
     <ClInclude Include="include\Densities\densities_add_liq.h" />

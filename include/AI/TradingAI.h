@@ -2,7 +2,7 @@
 #include <vector>
 #include "engine/OrderBook.h"
 
-enum Action { BUY_MARKET, CANCEL_ORDER, WAIT };
+enum Action { BUY_MARKET, SELL_MARKET, WAIT };
 
 int HEATMAP_ROWS = 2 * depth + 1;
 int HEATMAP_COLS = 300;
@@ -28,6 +28,9 @@ public:
 	void store(const Experience& exp);
 	void clear();
 	const std::vector<Experience>& get() const;
+
+	std::vector<float> computeAdvantages(float lastValue);
+	std::vector<float> computeReturns(float lastValue);
 
 private:
 	std::vector<Experience> buffer;
