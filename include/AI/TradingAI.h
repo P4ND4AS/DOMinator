@@ -2,8 +2,14 @@
 #include <vector>
 #include "engine/OrderBook.h"
 #include "Heatmap.h"
+#include "RewardWindow.h"
 
 enum Action { BUY_MARKET, SELL_MARKET, WAIT };
+
+struct AgentState {
+    int position = 0;
+    float entry_price = 0.0f;
+};
 
 int HEATMAP_ROWS = 2 * depth + 1;
 int HEATMAP_COLS = 300;
@@ -13,28 +19,28 @@ constexpr float GAMMA = 0.99f;
 constexpr float LAMBDA = 0.95f;
 constexpr float CLIP_EPS = 0.2;
 
-struct Experience {
-	std::vector<std::vector<float>> state;
-	Action action;
-	float reward;
-	bool done;
-	std::vector<std::vector<float>> nextState;
-	float value;
-	float logProb;
+struct Transition {
+    std::vector<float> observation;  // Flattened heatmap at t (peut être un pointeur ou index si trop gros)
+    Action action;                   // Action prise à t
+    float log_prob;                  // log(pi_theta(a_t | s_t)) pour l’ancienne politique
+    float value;                     // estimation V(s_t) donnée par l’ancien réseau
+    float reward;                    // récompense calculée a posteriori
+    bool done;                       // true si fin de trajectoire
 };
+
 
 
 class MemoryBuffer {
 public:
-	void store(const Experience& exp);
+	void store(const Transition& exp);
 	void clear();
-	const std::vector<Experience>& get() const;
+	const std::vector<Transition>& get() const;
 
 	std::vector<float> computeAdvantages(float lastValue);
 	std::vector<float> computeReturns(float lastValue);
 
 private:
-	std::vector<Experience> buffer;
+	std::vector<Transition> buffer;
 };
 
 
@@ -43,28 +49,49 @@ private:
 #include "NeuralNetwork.h"
 #include <random>
 
+struct TradeLog {
+    int timestep_entry;
+    float price_entry;
+    int timestep_exit;
+    float price_exit;
+    float pnl;
+    Action entry_action;
+    Action exit_action;
+};
+
+
 class TradingEnvironment {
 public:
+
     TradingEnvironment(OrderBook* book);
 
     void reset();
     void updateMarket(int n_iter, std::mt19937& rng);
+    Action sampleFromPolicy(const std::vector<float>& policy, std::mt19937& rng);
+    void handleAction(Action action);
+    void updateRewardWindows();
 
-    std::vector<std::vector<float>> getObservation();
-    Eigen::VectorXf getAgentState() const;
+	AgentState getAgentState() const { return agent_state; }
 
-    float step(Action action, std::mt19937& rng);
-    bool isDone() const;
-    float getCumulativeReward() const;
+    void printTradeLogs() const;
+
+    void train(std::mt19937& rng);
 
 private:
     OrderBook* orderBook;
     Heatmap heatmap;
-    int timestep;
-    const int maxTimesteps;
-    bool episodeDone;
-    float cumulativeReward;
+    PolicyValueNet network;
+    MemoryBuffer buffer;
 
-    int currentPosition;   // -1 short, 0 flat, 1 long
-    double entryPrice = 0.0;
+    AgentState agent_state;
+    std::vector<RewardWindow> reward_windows;
+    std::vector<TradeLog> trade_logs;
+    std::optional<TradeLog> open_trade;
+
+    int current_decision_index = 0;
+    int decision_per_second = 10;
+    int traj_duration = 3600;
+    int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000);
+    int N_trajectories = 1;
+	bool isEpisodeDone = false;
 };

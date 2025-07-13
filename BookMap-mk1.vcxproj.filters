@@ -203,6 +203,9 @@
     <ClInclude Include="include\AI\Activations.h">
       <Filter>Fichiers d%27en-tête\AI</Filter>
     </ClInclude>
+    <ClInclude Include="include\AI\RewardWindow.h">
+      <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\heatmap.frag">

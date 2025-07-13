@@ -1,8 +1,8 @@
 #include "AI/TradingAI.h"
 #include "Heatmap.h"
+#include <iostream>
 
-
-void MemoryBuffer::store(const Experience& exp) {
+void MemoryBuffer::store(const Transition& exp) {
 	buffer.push_back(exp);
 }
 
@@ -10,7 +10,7 @@ void MemoryBuffer::clear() {
 	buffer.clear();
 }
 
-const std::vector<Experience>& MemoryBuffer::get() const {
+const std::vector<Transition>& MemoryBuffer::get() const {
 	return buffer;
 }
 
@@ -56,105 +56,163 @@ std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
 
 
 TradingEnvironment::TradingEnvironment(OrderBook* book)
-	: orderBook(book), heatmap(128, 128), timestep(0), maxTimesteps(5000)
+	: orderBook(book), heatmap(128, 128)
 {
 	reset();
 }
 
-void TradingEnvironment::reset() {
-	timestep = 0;
-	episodeDone = false;
-	cumulativeReward = 0.0f;
-	currentPosition = 0;
-	entryPrice = 0.0;
-}
+
 
 void TradingEnvironment::updateMarket(int n_iter, std::mt19937& rng) {
 	orderBook->update(n_iter, rng);
-	timestep += n_iter;
+	current_decision_index += n_iter;
 	if (timestep >= maxTimesteps) {
-		episodeDone = true;
+		isEpisodeDone = true;
 	}
 }
 
-std::vector<std::vector<float>> TradingEnvironment::getObservation() {
-	BookSnapshot snapshot = orderBook->getCurrentBook();
+Action TradingEnvironment::sampleFromPolicy(const std::vector<float>& policy,
+	std::mt19937& rng) {
+	if (policy.size() != 3) { throw std::invalid_argument("Policy must have 3 elements"); }
 
-	heatmap.updateData(snapshot);
+	std::discrete_distribution<int> dist(policy.begin(), policy.end());
+	int action_index = dist(rng);
+	return static_cast<Action>(action_index);
+}
 
-	return heatmap.data;
+void TradingEnvironment::handleAction(Action action) {
+    int current_timestep = current_decision_index;  // ou autre variable qui compte les itérations
+
+    if (action != WAIT || agent_state.position != 0) {
+        RewardWindow rw(current_decision_index, action, agent_state.entry_price,
+            agent_state.position != 0);
+        reward_windows.push_back(rw);
+    }
+
+    if (action == BUY_MARKET) {
+        if (agent_state.position == 0) {
+            // Ouverture d'une nouvelle position longue
+            agent_state.position = 1;
+            agent_state.entry_price = orderBook->getCurrentBestAsk();
+
+            // Nouveau trade ouvert
+            open_trade = TradeLog{
+                current_timestep,
+                agent_state.entry_price,
+                -1,  // pas encore fermé
+                0.0f,
+                0.0f,
+                BUY_MARKET,
+                WAIT  // pas encore de sortie
+            };
+        }
+        else if (agent_state.position == -1) {
+            // Fermeture d'une position courte
+            float exit_price = orderBook->getCurrentBestAsk();
+            float pnl = agent_state.entry_price - exit_price;
+
+            // Compléter le trade ouvert
+            if (open_trade.has_value()) {
+                open_trade->timestep_exit = current_timestep;
+                open_trade->price_exit = exit_price;
+                open_trade->pnl = pnl;
+                open_trade->exit_action = BUY_MARKET;
+                trade_logs.push_back(open_trade.value());
+                open_trade.reset();
+            }
+
+            agent_state.position = 0;
+        }
+    }
+    else if (action == SELL_MARKET) {
+        if (agent_state.position == 0) {
+            // Ouverture d'une nouvelle position courte
+            agent_state.position = -1;
+            agent_state.entry_price = orderBook->getCurrentBestBid();
+
+            open_trade = TradeLog{
+                current_timestep,
+                agent_state.entry_price,
+                -1,
+                0.0f,
+                0.0f,
+                SELL_MARKET,
+                WAIT
+            };
+        }
+        else if (agent_state.position == 1) {
+            // Fermeture d'une position longue
+            float exit_price = orderBook->getCurrentBestBid();
+            float pnl = exit_price - agent_state.entry_price;
+
+            if (open_trade.has_value()) {
+                open_trade->timestep_exit = current_timestep;
+                open_trade->price_exit = exit_price;
+                open_trade->pnl = pnl;
+                open_trade->exit_action = SELL_MARKET;
+                trade_logs.push_back(open_trade.value());
+                open_trade.reset();
+            }
+
+            agent_state.position = 0;
+        }
+    }
 }
 
 
-Eigen::VectorXf TradingEnvironment::getAgentState() const {
-	Eigen::VectorXf state(1);
-	state(0) = static_cast<float>(currentPosition);
-	return state;
+void TradingEnvironment::updateRewardWindows() {
+
+	for (auto it = reward_windows.begin(); it != reward_windows.end();) {
+		it->addPnL(orderBook->getCurrentBestBid(), orderBook->getCurrentBestAsk(), agent_state);
+
+		if (it->isComplete()) {
+			float reward = it->computeWeightedReward();
+
+			Transition transition;
+			transition.action = it->action;
+			transition.log_prob = std::log(it->proba);
+			transition.reward = reward;
+			transition.value = it->value;
+			transition.done = isEpisodeDone;
+
+			buffer.store(transition);
+
+			it = reward_windows.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 
 
-float TradingEnvironment::step(Action action, std::mt19937& rng) {
-	float reward = 0.0f;
-	const double bestBid = orderBook->getCurrentBestBid();
-	const double bestAsk = orderBook->getCurrentBestAsk();
+void TradingEnvironment::printTradeLogs() const {
+    std::cout << "Trade history (" << trade_logs.size() << " trades):\n";
+    for (const auto& trade : trade_logs) {
+        std::cout
+            << "Entry t=" << trade.timestep_entry
+            << " price=" << trade.price_entry
+            << " | Exit t=" << trade.timestep_exit
+            << " price=" << trade.price_exit
+            << " | PnL=" << trade.pnl
+            << " | EntryAction=" << static_cast<int>(trade.entry_action)
+            << " ExitAction=" << static_cast<int>(trade.exit_action)
+            << "\n";
+    }
+}
 
-	switch (action) {
-	case BUY_MARKET:
-		if (currentPosition == 0) {
-			MarketOrder buyOrder = orderBook->generateMarketOrder();
-			buyOrder.side = Side::ASK;
-			buyOrder.size = 1;
-			orderBook->processMarketOrder(buyOrder);
 
-			entryPrice = bestAsk;
-			currentPosition = 1;
-		}
-		else if (currentPosition == -1) {
-			MarketOrder buyCover = orderBook->generateMarketOrder();
-			buyCover.side = Side::ASK;
-			buyCover.size = 1;
-			orderBook->processMarketOrder(buyCover);
+void TradingEnvironment::train(std::mt19937& rng) {
+    for (int traj = 0; traj < N_trajectories; ++traj) {
+        for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
+            orderBook->update(marketUpdatePerDecision, rng);
+            heatmap.updateData(orderBook->getCurrentBook());
+            auto [policy, value] = network.forward(heatmap.data, agent_state);
+            Action action = sampleFromPolicy(policy, rng);
+            handleAction(action);
+            updateRewardWindows();
 
-			reward = static_cast<float>(entryPrice - bestAsk);
-			currentPosition = 0;
-			entryPrice = 0.0;
-		}
-		break;
-
-	case SELL_MARKET:
-		if (currentPosition == 0) {
-			MarketOrder sellOrder = orderBook->generateMarketOrder();
-			sellOrder.side = Side::BID;
-			sellOrder.size = 1;
-			orderBook->processMarketOrder(sellOrder);
-
-			entryPrice = bestBid;
-			currentPosition = -1;
-		}
-		else if (currentPosition == 1) {
-			MarketOrder sellClose = orderBook->generateMarketOrder();
-			sellClose.side = Side::BID;
-			sellClose.size = 1;
-			orderBook->processMarketOrder(sellClose);
-
-			reward = static_cast<float>(bestBid - entryPrice);
-			currentPosition = 0;
-			entryPrice = 0.0;
-		}
-		break;
-
-	case WAIT:
-		break;
-	}
-
-	updateMarket(20000, rng); 
-
-	if (currentPosition == 1) {
-		reward = static_cast<float>(bestBid - entryPrice);
-	}
-	else if (currentPosition == -1) {
-		reward = static_cast<float>(entryPrice - bestAsk);
-	}
-	cumulativeReward += reward;
-	return reward;
+        }
+        printTradeLogs();
+    }
 }
