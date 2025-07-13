@@ -5,13 +5,11 @@
 #include "RewardWindow.h"
 
 
-int HEATMAP_ROWS = 2 * depth + 1;
-int HEATMAP_COLS = 300;
 constexpr int N_ACTIONS = 3;
 
 constexpr float GAMMA = 0.99f;
 constexpr float LAMBDA = 0.95f;
-constexpr float CLIP_EPS = 0.2;
+constexpr float CLIP_EPS = 0.2f;
 
 struct Transition {
     std::vector<float> observation;  // Flattened heatmap at t (peut être un pointeur ou index si trop gros)
@@ -82,8 +80,8 @@ private:
 
     int current_decision_index = 0;
     int decision_per_second = 10;
-    int traj_duration = 600;
-    int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000);
+    int traj_duration = 5;
+    int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000.0f);
     int N_trajectories = 1;
 	bool isEpisodeDone = false;
 };

@@ -133,7 +133,15 @@ int main() {
     PolicyValueNet network(config);
 
     TradingEnvironment tradingEnvironment(&ob, &network);
-    tradingEnvironment.train(rng);
+    
+    try {
+        tradingEnvironment.train(rng);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+    }
+
+    
 
     
 

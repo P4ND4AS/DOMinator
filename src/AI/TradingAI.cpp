@@ -58,7 +58,12 @@ std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
 TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
 	: orderBook(book), heatmap(128, 128), network(network)
 {
-
+    std::cout << "Environment created" << "\n";
+    std::cout << "Shape of heatmap data : " << heatmap.data.rows() << "x" << heatmap.data.cols() << "\n\n";
+    if (!network) {
+        std::cerr << "Erreur: network est nullptr!" << std::endl;
+        return;
+    }
 }
 
 
@@ -195,13 +200,24 @@ void TradingEnvironment::printTradeLogs() const {
 
 void TradingEnvironment::train(std::mt19937& rng) {
     for (int traj = 0; traj < N_trajectories; ++traj) {
+        std::cout << "Trajectory #" << traj << "\n\n";
         for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
+            std::cout << "Iteration #" << iter << "\n\n";
             orderBook->update(marketUpdatePerDecision, rng);
+            std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
             heatmap.updateData(orderBook->getCurrentBook());
+            std::cout << "Matrice updated" << "\n";
             auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
+
+            std::cout << "Policy : " << policy << " & value : " << value << "\n";
+
             Action action = sampleFromPolicy(policy, rng);
+            std::cout << "Action : " << action << "\n";
             handleAction(action);
+            std::cout << "Action handled" << "\n";
             updateRewardWindows();
+            std::cout << "Reward windows updated" << "\n";
+            std::cout << "\n\n";
 
         }
         printTradeLogs();

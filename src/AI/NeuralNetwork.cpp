@@ -91,19 +91,22 @@ std::vector<Eigen::MatrixXf> ConvLayer::forward(const std::vector<Eigen::MatrixX
 
 
 Eigen::MatrixXf ConvLayer::convolve2D(const Eigen::MatrixXf& input, const Eigen::MatrixXf& kernel, int stride, int padding) {
-    int inputSize = input.rows();
-    int kernelSize = kernel.rows();
+    int inputWidth = input.cols();
+    int inputHeight = input.rows();
+    int kernelHeight = kernel.rows();
+    int kernelWidth = kernel.cols();
 
 
-    Eigen::MatrixXf padded = Eigen::MatrixXf::Zero(inputSize + 2 * padding, inputSize + 2 * padding);
-    padded.block(padding, padding, inputSize, inputSize) = input;
+    Eigen::MatrixXf padded = Eigen::MatrixXf::Zero(inputHeight + 2 * padding, inputWidth + 2 * padding);
+    padded.block(padding, padding, inputHeight, inputWidth) = input;
 
-    int outputSize = (padded.rows() - kernelSize) / stride + 1;
-    Eigen::MatrixXf output(outputSize, outputSize);
+    int outputHeight = (padded.rows() - kernelHeight) / stride + 1;
+    int outputWidth = (padded.cols() - kernelWidth) / stride + 1;
+    Eigen::MatrixXf output(outputHeight, outputWidth);
 
-    for (int i = 0; i < outputSize; ++i) {
-        for (int j = 0; j < outputSize; ++j) {
-            output(i, j) = (padded.block(i * stride, j * stride, kernelSize, kernelSize).cwiseProduct(kernel)).sum();
+    for (int i = 0; i < outputHeight; ++i) {
+        for (int j = 0; j < outputWidth; ++j) {
+            output(i, j) = (padded.block(i * stride, j * stride, kernelHeight, kernelWidth).cwiseProduct(kernel)).sum();
         }
     }
 
@@ -143,6 +146,7 @@ std::vector<Eigen::MatrixXf> CNN::forward(const std::vector<Eigen::MatrixXf>& in
     for (auto& layer : layers) {
         current = layer.forward(current);
     }
+
     return current;
 }
 
@@ -185,11 +189,13 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
     int hiddenSize = config.denseLayerSize;
     int numActions = config.numActions;
 
+    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize));
+
     agent_fc_weights = Eigen::MatrixXf::Random(agentHiddenSize, agentInputSize);
     agent_fc_bias = Eigen::VectorXf::Random(agentHiddenSize);
 
     // Initialisation des poids et biais pour la couche fully connected
-    fc1_weights = Eigen::MatrixXf::Random(hiddenSize, agentHiddenSize + flattenedSize);
+    fc1_weights = Eigen::MatrixXf::Random(hiddenSize, agentHiddenSize + flattenedSize) * scale;
     fc1_bias = Eigen::VectorXf::Random(hiddenSize);
 
     // Tête policy : génère une probabilité pour chaque action
@@ -206,26 +212,18 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
 
 std::pair<Eigen::VectorXf, float> PolicyValueNet::forward(const Eigen::MatrixXf& input_image,
                             const Eigen::VectorXf& agent_state) {
-    std::vector<Eigen::MatrixXf> inputChannels = { input_image }; // input canaux = 1
 
-    auto convOutput = cnn.forward(inputChannels);            
+    std::vector<Eigen::MatrixXf> inputChannels = { input_image }; 
+
+    auto convOutput = cnn.forward(inputChannels);   
+
     Eigen::VectorXf flat = cnn.flatten(convOutput);   
-    std::cout << "[CNN] Feature maps:\n";
-    for (const auto& fm : convOutput) {
-        std::cout << fm << "\n\n";
-    }
-    std::cout << "[Flattened] CNN output:\n" << flat.transpose() << "\n";
+    
 
     Eigen::VectorXf agent_features = relu(agent_fc_weights * agent_state + agent_fc_bias);
-    std::cout << "[Agent Input]:\n" << agent_state.transpose() << "\n";
-    std::cout << "[Agent Features after FC]:\n" << agent_features.transpose() << "\n";
 
-
-
-    // Concaténer
     Eigen::VectorXf combined_input(flat.size() + agent_features.size());
     combined_input << flat, agent_features;
-    std::cout << "[Combined Input] (CNN + Agent):\n" << combined_input.transpose() << "\n";
 
 
     Eigen::VectorXf hidden = relu(fc1_weights * combined_input + fc1_bias);

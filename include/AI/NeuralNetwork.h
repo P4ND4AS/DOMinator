@@ -38,6 +38,7 @@ public:
 
 	std::vector<Eigen::MatrixXf> forward(const std::vector<Eigen::MatrixXf>& input);
 
+
 private:
 	int inputDepth;
 	int numFilters;
