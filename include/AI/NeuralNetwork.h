@@ -83,7 +83,6 @@ public:
 	std::pair<Eigen::VectorXf, float> forward(const Eigen::MatrixXf& input_image,
 		const Eigen::VectorXf& agent_state);
 
-
 private:
 	Eigen::MatrixXf agent_fc_weights;
 	Eigen::VectorXf agent_fc_bias;

@@ -24,8 +24,9 @@ struct RewardWindow {
     bool in_position;
     std::vector<float> latent_pnls;
 
-    RewardWindow(int idx, Action act, float price, bool in_pos)
-        : decision_index(idx), action(act), entry_price(price), in_position(in_pos) {
+    RewardWindow(int idx, Action act, float price, bool in_pos, float proba, float value)
+        : decision_index(idx), action(act), entry_price(price), in_position(in_pos), 
+          proba(proba), value(value) {
     }
 
     bool isComplete() const {

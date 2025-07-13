@@ -58,7 +58,7 @@ public:
     TradingEnvironment(OrderBook* book, PolicyValueNet* network);
 
     Action sampleFromPolicy(const Eigen::VectorXf& policy, std::mt19937& rng);
-    void handleAction(Action action);
+    void handleAction(Action action, const Eigen::VectorXf& policy, const float value);
     void updateRewardWindows();
 
 	AgentState getAgentState() const { return agent_state; }
@@ -80,7 +80,7 @@ private:
 
     int current_decision_index = 0;
     int decision_per_second = 10;
-    int traj_duration = 5;
+    int traj_duration = 3;
     int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000.0f);
     int N_trajectories = 1;
 	bool isEpisodeDone = false;

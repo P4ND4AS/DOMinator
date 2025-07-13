@@ -174,7 +174,7 @@ int CNN::getFlattenedSize() const {
 
 
 PolicyValueNet::PolicyValueNet(const AIConfig& config)
-    : cnn(config)  // Le CNN prend maintenant tout le config
+    : cnn(config)  
 {
 
     int flattenedSize = cnn.getFlattenedSize();
@@ -189,7 +189,7 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
     int hiddenSize = config.denseLayerSize;
     int numActions = config.numActions;
 
-    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize));
+    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize)) * 0.0001f;
 
     agent_fc_weights = Eigen::MatrixXf::Random(agentHiddenSize, agentInputSize);
     agent_fc_bias = Eigen::VectorXf::Random(agentHiddenSize);
@@ -229,6 +229,18 @@ std::pair<Eigen::VectorXf, float> PolicyValueNet::forward(const Eigen::MatrixXf&
     Eigen::VectorXf hidden = relu(fc1_weights * combined_input + fc1_bias);
 
     Eigen::VectorXf logits = policy_head_weights * hidden + policy_head_bias;
+
+    // Juste avant le softmax
+    if (logits.hasNaN()) {
+        std::cerr << "NaN in logits! Debug info:\n"
+            << "Hidden layer: " << hidden.transpose() << "\n"
+            << "Policy weights: " << policy_head_weights.sum() << "\n"
+            << "Policy bias: " << policy_head_bias.transpose() << "\n";
+        // Solution temporaire radicale
+        return { Eigen::VectorXf::Constant(3, 1.0f / 3.0f), 0.0f };
+    }
+
+
     Eigen::VectorXf policy = softmax(logits);
 
     float value = (value_head_weights * hidden + value_head_bias)(0);
@@ -243,7 +255,8 @@ Eigen::VectorXf PolicyValueNet::relu(const Eigen::VectorXf& x) {
 }
 
 Eigen::VectorXf PolicyValueNet::softmax(const Eigen::VectorXf& x) {
-    Eigen::VectorXf exp_x = x.unaryExpr([](float val) { return std::exp(val); });
-    float sum = exp_x.sum();
-    return exp_x / sum;
+    Eigen::VectorXf cooled = x / 10.0f;
+    cooled = (cooled.array() - cooled.maxCoeff()).exp();
+
+    return cooled / cooled.sum();
 }

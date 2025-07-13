@@ -56,7 +56,7 @@ std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
 
 
 TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
-	: orderBook(book), heatmap(128, 128), network(network)
+	: orderBook(book), heatmap(128, 30), network(network)
 {
     std::cout << "Environment created" << "\n";
     std::cout << "Shape of heatmap data : " << heatmap.data.rows() << "x" << heatmap.data.cols() << "\n\n";
@@ -76,22 +76,16 @@ Action TradingEnvironment::sampleFromPolicy(const Eigen::VectorXf& policy,
 	return static_cast<Action>(action_index);
 }
 
-void TradingEnvironment::handleAction(Action action) {
-    int current_timestep = current_decision_index;  // ou autre variable qui compte les itérations
-
-    if (action != WAIT || agent_state.position != 0) {
-        RewardWindow rw(current_decision_index, action, agent_state.entry_price,
-            agent_state.position != 0);
-        reward_windows.push_back(rw);
-    }
+void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& policy, const float value) {
+    int current_timestep = current_decision_index;
 
     if (action == BUY_MARKET) {
+        std::cout << "BUY" << "\n";
         if (agent_state.position == 0) {
-            // Ouverture d'une nouvelle position longue
+            std::cout<<"long opened"<<"\n";
             agent_state.position = 1;
             agent_state.entry_price = orderBook->getCurrentBestAsk();
 
-            // Nouveau trade ouvert
             open_trade = TradeLog{
                 current_timestep,
                 agent_state.entry_price,
@@ -99,16 +93,20 @@ void TradingEnvironment::handleAction(Action action) {
                 0.0f,
                 0.0f,
                 BUY_MARKET,
-                WAIT  // pas encore de sortie
+                WAIT  
             };
+            MarketOrder order = orderBook->generateMarketOrder();
+            order.side = Side::ASK;
+            order.size = 1;
+            orderBook->processMarketOrder(order);
+            std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == -1) {
-            // Fermeture d'une position courte
             float exit_price = orderBook->getCurrentBestAsk();
             float pnl = agent_state.entry_price - exit_price;
 
-            // Compléter le trade ouvert
             if (open_trade.has_value()) {
+                std::cout << "long closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -116,13 +114,15 @@ void TradingEnvironment::handleAction(Action action) {
                 trade_logs.push_back(open_trade.value());
                 open_trade.reset();
             }
-
             agent_state.position = 0;
+            MarketOrder order = orderBook->generateMarketOrder();
+            order.side = Side::ASK;
+            order.size = 1;
+            orderBook->processMarketOrder(order);
         }
     }
     else if (action == SELL_MARKET) {
         if (agent_state.position == 0) {
-            // Ouverture d'une nouvelle position courte
             agent_state.position = -1;
             agent_state.entry_price = orderBook->getCurrentBestBid();
 
@@ -135,13 +135,17 @@ void TradingEnvironment::handleAction(Action action) {
                 SELL_MARKET,
                 WAIT
             };
+            MarketOrder order = orderBook->generateMarketOrder();
+            order.side = Side::BID;
+            order.size = 1;
+            orderBook->processMarketOrder(order);
         }
         else if (agent_state.position == 1) {
-            // Fermeture d'une position longue
             float exit_price = orderBook->getCurrentBestBid();
             float pnl = exit_price - agent_state.entry_price;
 
             if (open_trade.has_value()) {
+                std::cout << "short closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -149,10 +153,17 @@ void TradingEnvironment::handleAction(Action action) {
                 trade_logs.push_back(open_trade.value());
                 open_trade.reset();
             }
-
             agent_state.position = 0;
+            MarketOrder order = orderBook->generateMarketOrder();
+            order.side = Side::BID;
+            order.size = 1;
+            orderBook->processMarketOrder(order);
         }
     }
+
+    RewardWindow rw(current_decision_index, action, agent_state.entry_price,
+        agent_state.position != 0, policy(static_cast<int>(action)), value);
+    reward_windows.push_back(rw);
 }
 
 
@@ -199,21 +210,29 @@ void TradingEnvironment::printTradeLogs() const {
 
 
 void TradingEnvironment::train(std::mt19937& rng) {
+    Eigen::MatrixXf dummy_heatmap = Eigen::MatrixXf::Zero(401, 128);
     for (int traj = 0; traj < N_trajectories; ++traj) {
         std::cout << "Trajectory #" << traj << "\n\n";
+        
+        for (int iter = 0; iter < 128; ++iter) {
+            orderBook->update(200, rng);
+            heatmap.updateData(orderBook->getCurrentBook());
+        }
+        std::cout << "OrderBook sped up a few seconds..." << "\n";
+
         for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
             std::cout << "Iteration #" << iter << "\n\n";
             orderBook->update(marketUpdatePerDecision, rng);
             std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
             heatmap.updateData(orderBook->getCurrentBook());
             std::cout << "Matrice updated" << "\n";
-            auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
+            auto [policy, value] = network->forward(dummy_heatmap, agent_state.toVector());
 
             std::cout << "Policy : " << policy << " & value : " << value << "\n";
 
             Action action = sampleFromPolicy(policy, rng);
             std::cout << "Action : " << action << "\n";
-            handleAction(action);
+            handleAction(action, policy, value);
             std::cout << "Action handled" << "\n";
             updateRewardWindows();
             std::cout << "Reward windows updated" << "\n";

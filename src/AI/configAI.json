@@ -4,20 +4,20 @@
   "cnn_layers": [
     {
       "in": 1,
-      "out": 4,
+      "out": 8,
       "kernel": 3,
       "stride": 1,
       "padding": 1
     },
     {
-      "in": 4,
-      "out": 8,
+      "in": 8,
+      "out": 64,
       "kernel": 3,
       "stride": 1,
       "padding": 1
     }
   ],
-  "dense_layer_size": 20,
+  "dense_layer_size": 200,
   "num_actions": 3,
   "input_height": 401,
   "input_width": 128
