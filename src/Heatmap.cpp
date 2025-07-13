@@ -4,9 +4,10 @@
 #include <algorithm>
 
 Heatmap::Heatmap(int r, int c)
-	: view_rows(r), cols(c), data(M, std::vector<float>(c, 0.0f)),
+	: view_rows(r), cols(c), data(M, c),
 	last_price_row_history(c, 0.0f), domData(M, 0.0f)
 {
+	data.setZero();
 	createTexture();
 	createLastPriceTexture();
 }
@@ -17,7 +18,7 @@ Heatmap::~Heatmap() {
 }
 
 
-void Heatmap::printHeatMap() const {
+/*void Heatmap::printHeatMap() const {
 
 	for (int i = 0; i < M; ++i) {
 		for (int j = 0; j < cols; ++j) {
@@ -25,16 +26,18 @@ void Heatmap::printHeatMap() const {
 		}
 		std::cout << "\n";
 	}
-}
+}*/
 
 
 // -------- Création et upload de la texture 2D (heatmap) --------
 void Heatmap::createTexture() {
 	std::vector<float> linearData;
-	linearData.reserve(M * cols);
-	for (int r = (M-view_rows)/2; r < (M+view_rows)/2; ++r)
+	linearData.reserve(view_rows * cols);
+	int row_start = (M - view_rows) / 2 + offset;
+
+	for (int r = 0; r < view_rows; ++r)
 		for (int c = 0; c < cols; ++c)
-			linearData.push_back(data[r+offset][c]);
+			linearData.push_back(data(row_start + r, c));
 
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
@@ -45,10 +48,12 @@ void Heatmap::createTexture() {
 
 void Heatmap::uploadToTexture() {
 	std::vector<float> linearData;
-	linearData.reserve(M * cols);
-	for (int r = (M - view_rows) / 2; r < (M + view_rows) / 2; ++r)
+	linearData.reserve(view_rows * cols);
+	int row_start = (M - view_rows) / 2 + offset;
+
+	for (int r = 0; r < view_rows; ++r)
 		for (int c = 0; c < cols; ++c)
-			linearData.push_back(data[r+offset][c]);
+			linearData.push_back(data(row_start + r, c));
 
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cols, view_rows, GL_RED, GL_FLOAT, linearData.data());
@@ -85,9 +90,7 @@ void Heatmap::uploadLastPriceTexture() {
 // --------- Logique de la heatmap ---------
 
 void Heatmap::scrollLeft() {
-	for (int r = 0; r < M; ++r)
-		for (int c = 0; c < cols - 1; ++c)
-			data[r][c] = data[r][c + 1];
+	data.leftCols(cols - 1) = data.rightCols(cols - 1);
 
 	for (int c = 0; c < cols - 1; ++c)
 		last_price_row_history[c] = last_price_row_history[c + 1];
@@ -107,7 +110,7 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 				sign = (order.side == Side::BID) ? 1 : -1;
 			}
 		}
-		data[r][cols - 1] = volume;
+		data(r, cols - 1) = volume;
 		domData[r] = volume * sign;
 	}
 }
@@ -174,15 +177,16 @@ void Heatmap::render(const Shader& shader, const Quad& quad, const glm::mat4& mo
 }
 
 void Heatmap::ResampleHeatmapForWindow(int newCols) {
-	// Sauvegarde de l'ancienne data
-	std::vector<std::vector<float>> oldData = data;
-	std::vector<float> oldlast_price_row_history = last_price_row_history;
+	// Sauvegarde des anciennes données
+	Eigen::MatrixXf oldData = data;
+	std::vector<float> oldLastPrice = last_price_row_history;
 	int oldCols = cols;
 
-	// Redimensionnement au nouveau format
-	data.assign(M, std::vector<float>(newCols, 0.0f)); // M lignes, newCols colonnes, init à 0
+	// Redimensionner la matrice et la vector
+	data = Eigen::MatrixXf::Zero(M, newCols);
 	last_price_row_history.assign(newCols, 0.0f);
 
+	// Copier les données existantes depuis l'ancienne data
 	int copyCount = std::min(oldCols, newCols);
 	int oldStart = oldCols - copyCount;
 	int newStart = newCols - copyCount;
@@ -190,20 +194,20 @@ void Heatmap::ResampleHeatmapForWindow(int newCols) {
 	for (int col = 0; col < copyCount; ++col) {
 		int oldCol = oldStart + col;
 		int newCol = newStart + col;
-		for (int row = 0; row < M; ++row) {
-			data[row][newCol] = oldData[row][oldCol];
-		}
-		last_price_row_history[newCol] = oldlast_price_row_history[oldCol];
+		data.col(newCol) = oldData.col(oldCol);
+		last_price_row_history[newCol] = oldLastPrice[oldCol];
 	}
 
 	cols = newCols;
 
-
+	// Recréation des textures GPU
 	if (glIsTexture(textureID)) {
 		glDeleteTextures(1, &textureID);
+		textureID = 0;
 	}
 	if (glIsTexture(last_price_textureID)) {
 		glDeleteTextures(1, &last_price_textureID);
+		last_price_textureID = 0;
 	}
 
 	createTexture();
@@ -211,6 +215,6 @@ void Heatmap::ResampleHeatmapForWindow(int newCols) {
 
 	GLenum err = glGetError();
 	if (err != GL_NO_ERROR) {
-		std::cerr << "OpenGL error after texture creation: " << err << std::endl;
+		std::cerr << "OpenGL error after texture recreation: " << std::hex << err << std::endl;
 	}
 }

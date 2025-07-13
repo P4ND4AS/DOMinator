@@ -55,23 +55,14 @@ std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
 
 
-TradingEnvironment::TradingEnvironment(OrderBook* book)
-	: orderBook(book), heatmap(128, 128)
+TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
+	: orderBook(book), heatmap(128, 128), network(network)
 {
-	reset();
+
 }
 
 
-
-void TradingEnvironment::updateMarket(int n_iter, std::mt19937& rng) {
-	orderBook->update(n_iter, rng);
-	current_decision_index += n_iter;
-	if (timestep >= maxTimesteps) {
-		isEpisodeDone = true;
-	}
-}
-
-Action TradingEnvironment::sampleFromPolicy(const std::vector<float>& policy,
+Action TradingEnvironment::sampleFromPolicy(const Eigen::VectorXf& policy,
 	std::mt19937& rng) {
 	if (policy.size() != 3) { throw std::invalid_argument("Policy must have 3 elements"); }
 
@@ -207,7 +198,7 @@ void TradingEnvironment::train(std::mt19937& rng) {
         for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
             orderBook->update(marketUpdatePerDecision, rng);
             heatmap.updateData(orderBook->getCurrentBook());
-            auto [policy, value] = network.forward(heatmap.data, agent_state);
+            auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
             Action action = sampleFromPolicy(policy, rng);
             handleAction(action);
             updateRewardWindows();

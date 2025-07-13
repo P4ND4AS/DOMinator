@@ -1,5 +1,19 @@
 #pragma once
 #include "TradingAI.h"
+#include <Eigen/Dense>
+
+enum Action { BUY_MARKET = 0, SELL_MARKET = 1, WAIT = 2 };
+
+struct AgentState {
+    int position = 0;
+    float entry_price = 0.0f;
+
+    Eigen::VectorXf toVector() const {
+        Eigen::VectorXf vec(2);
+        vec << position, entry_price;
+        return vec;
+    }
+};
 
 struct RewardWindow {
     int decision_index;

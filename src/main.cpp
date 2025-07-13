@@ -11,6 +11,7 @@
 #include "renderDomHistogram.h"
 #include "UI/buttonsForTrades.h"
 #include "AI/NeuralNetwork.h"
+#include "AI/TradingAI.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -129,26 +130,15 @@ int main() {
 
     // ------------------- AI SETUP -------------------
     AIConfig config = loadConfig("src/AI/configAI.json");    
-  
-    Eigen::MatrixXf input_image(4, 4);
-    input_image << 1, 2, 3, 4,
-        5, 6, 7, 8,
-        9, 10, 11, 12,
-        13, 14, 15, 16;
+    PolicyValueNet network(config);
 
+    TradingEnvironment tradingEnvironment(&ob, &network);
+    tradingEnvironment.train(rng);
 
-    Eigen::VectorXf agent_state(2);
-    agent_state << 0.5f, -0.3f;
+    
 
-    PolicyValueNet net(config);
-
-    auto [policy, value] = net.forward(input_image, agent_state);
-
-    std::cout << "[Policy] Probabilities :\n" << policy.transpose() << "\n";
-    std::cout << "[Value] Estimated : " << value << "\n";
-
-    /*
-    int iter = 1;
+    
+    /*int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
         glfwGetFramebufferSize(window, &windowWidth, &windowHeight);

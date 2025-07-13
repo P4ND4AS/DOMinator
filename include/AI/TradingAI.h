@@ -4,12 +4,6 @@
 #include "Heatmap.h"
 #include "RewardWindow.h"
 
-enum Action { BUY_MARKET, SELL_MARKET, WAIT };
-
-struct AgentState {
-    int position = 0;
-    float entry_price = 0.0f;
-};
 
 int HEATMAP_ROWS = 2 * depth + 1;
 int HEATMAP_COLS = 300;
@@ -63,11 +57,9 @@ struct TradeLog {
 class TradingEnvironment {
 public:
 
-    TradingEnvironment(OrderBook* book);
+    TradingEnvironment(OrderBook* book, PolicyValueNet* network);
 
-    void reset();
-    void updateMarket(int n_iter, std::mt19937& rng);
-    Action sampleFromPolicy(const std::vector<float>& policy, std::mt19937& rng);
+    Action sampleFromPolicy(const Eigen::VectorXf& policy, std::mt19937& rng);
     void handleAction(Action action);
     void updateRewardWindows();
 
@@ -80,7 +72,7 @@ public:
 private:
     OrderBook* orderBook;
     Heatmap heatmap;
-    PolicyValueNet network;
+    PolicyValueNet* network;
     MemoryBuffer buffer;
 
     AgentState agent_state;
@@ -90,7 +82,7 @@ private:
 
     int current_decision_index = 0;
     int decision_per_second = 10;
-    int traj_duration = 3600;
+    int traj_duration = 600;
     int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000);
     int N_trajectories = 1;
 	bool isEpisodeDone = false;

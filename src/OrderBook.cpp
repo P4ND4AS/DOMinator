@@ -302,7 +302,7 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
 
         double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
 
-        std::discrete_distribution<> event_dist({ p_add_liq, 0.006, 0.0004, 0.9886 });
+        std::discrete_distribution<> event_dist({ p_add_liq, 0.53, 0.02, 0.0 });
         int eventType = event_dist(rng);
 
         if (eventType == 0) {

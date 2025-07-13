@@ -5,14 +5,14 @@
 #include "../src/geometry/Quad.h"
 #include "Shader.h"
 #include <algorithm>
-
+#include <Eigen/Dense>
 
 class Heatmap {
 public:
 
 	int view_rows, cols;
 	int M = 2 * depth + 1;
-	std::vector<std::vector<float>> data;
+	Eigen::MatrixXf data;
 
 	//Pour la ligne du trait de 'last_price' par colonne
 	std::vector<float> last_price_row_history;
