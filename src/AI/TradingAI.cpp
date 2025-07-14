@@ -56,7 +56,7 @@ std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
 
 
 TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
-	: orderBook(book), heatmap(128, 30), network(network)
+	: orderBook(book), heatmap(128, 128), network(network)
 {
     std::cout << "Environment created" << "\n";
     std::cout << "Shape of heatmap data : " << heatmap.data.rows() << "x" << heatmap.data.cols() << "\n\n";
@@ -84,11 +84,11 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
         if (agent_state.position == 0) {
             std::cout<<"long opened"<<"\n";
             agent_state.position = 1;
-            agent_state.entry_price = orderBook->getCurrentBestAsk();
+            entry_price = orderBook->getCurrentBestAsk();
 
             open_trade = TradeLog{
                 current_timestep,
-                agent_state.entry_price,
+                entry_price,
                 -1,  // pas encore fermé
                 0.0f,
                 0.0f,
@@ -103,10 +103,10 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
         }
         else if (agent_state.position == -1) {
             float exit_price = orderBook->getCurrentBestAsk();
-            float pnl = agent_state.entry_price - exit_price;
+            float pnl = entry_price - exit_price;
 
             if (open_trade.has_value()) {
-                std::cout << "long closed" << "\n";
+                std::cout << "short closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -119,16 +119,17 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::ASK;
             order.size = 1;
             orderBook->processMarketOrder(order);
+            entry_price = 0.0f;
         }
     }
     else if (action == SELL_MARKET) {
         if (agent_state.position == 0) {
             agent_state.position = -1;
-            agent_state.entry_price = orderBook->getCurrentBestBid();
+            entry_price = orderBook->getCurrentBestBid();
 
             open_trade = TradeLog{
                 current_timestep,
-                agent_state.entry_price,
+                entry_price,
                 -1,
                 0.0f,
                 0.0f,
@@ -142,10 +143,10 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
         }
         else if (agent_state.position == 1) {
             float exit_price = orderBook->getCurrentBestBid();
-            float pnl = exit_price - agent_state.entry_price;
+            float pnl = exit_price - entry_price;
 
             if (open_trade.has_value()) {
-                std::cout << "short closed" << "\n";
+                std::cout << "long closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -158,10 +159,11 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::BID;
             order.size = 1;
             orderBook->processMarketOrder(order);
+            entry_price = 0.0f;
         }
     }
 
-    RewardWindow rw(current_decision_index, action, agent_state.entry_price,
+    RewardWindow rw(current_decision_index, action, entry_price,
         agent_state.position != 0, policy(static_cast<int>(action)), value);
     reward_windows.push_back(rw);
 }
@@ -202,8 +204,8 @@ void TradingEnvironment::printTradeLogs() const {
             << " | Exit t=" << trade.timestep_exit
             << " price=" << trade.price_exit
             << " | PnL=" << trade.pnl
-            << " | EntryAction=" << static_cast<int>(trade.entry_action)
-            << " ExitAction=" << static_cast<int>(trade.exit_action)
+            << " | EntryAction=" << trade.entry_action
+            << " ExitAction=" << trade.exit_action
             << "\n";
     }
 }
@@ -226,7 +228,7 @@ void TradingEnvironment::train(std::mt19937& rng) {
             std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
             heatmap.updateData(orderBook->getCurrentBook());
             std::cout << "Matrice updated" << "\n";
-            auto [policy, value] = network->forward(dummy_heatmap, agent_state.toVector());
+            auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
 
             std::cout << "Policy : " << policy << " & value : " << value << "\n";
 
@@ -237,6 +239,8 @@ void TradingEnvironment::train(std::mt19937& rng) {
             updateRewardWindows();
             std::cout << "Reward windows updated" << "\n";
             std::cout << "\n\n";
+
+            ++current_decision_index;
 
         }
         printTradeLogs();

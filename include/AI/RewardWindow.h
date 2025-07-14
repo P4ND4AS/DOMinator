@@ -6,11 +6,10 @@ enum Action { BUY_MARKET = 0, SELL_MARKET = 1, WAIT = 2 };
 
 struct AgentState {
     int position = 0;
-    float entry_price = 0.0f;
 
     Eigen::VectorXf toVector() const {
-        Eigen::VectorXf vec(2);
-        vec << position, entry_price;
+        Eigen::VectorXf vec(1);
+        vec << position;
         return vec;
     }
 };
@@ -53,10 +52,10 @@ struct RewardWindow {
 
         float pnl = 0.0f;
         if (state.position > 0) { // long
-            pnl = best_bid - state.entry_price;
+            pnl = best_bid - entry_price;
         }
         else if (state.position < 0) { // short
-            pnl = state.entry_price - best_ask;
+            pnl = entry_price - best_ask;
         }
 
         latent_pnls.push_back(pnl);

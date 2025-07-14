@@ -4,14 +4,14 @@
   "cnn_layers": [
     {
       "in": 1,
-      "out": 8,
+      "out": 4,
       "kernel": 3,
       "stride": 1,
       "padding": 1
     },
     {
-      "in": 8,
-      "out": 64,
+      "in": 4,
+      "out": 8,
       "kernel": 3,
       "stride": 1,
       "padding": 1

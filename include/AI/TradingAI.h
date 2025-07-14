@@ -77,10 +77,11 @@ private:
     std::vector<RewardWindow> reward_windows;
     std::vector<TradeLog> trade_logs;
     std::optional<TradeLog> open_trade;
+    float entry_price = 0.0f;
 
     int current_decision_index = 0;
     int decision_per_second = 10;
-    int traj_duration = 3;
+    int traj_duration = 10;
     int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000.0f);
     int N_trajectories = 1;
 	bool isEpisodeDone = false;

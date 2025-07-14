@@ -189,7 +189,7 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
     int hiddenSize = config.denseLayerSize;
     int numActions = config.numActions;
 
-    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize)) * 0.0001f;
+    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize));
 
     agent_fc_weights = Eigen::MatrixXf::Random(agentHiddenSize, agentInputSize);
     agent_fc_bias = Eigen::VectorXf::Random(agentHiddenSize);
