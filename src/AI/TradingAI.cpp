@@ -184,7 +184,7 @@ void TradingEnvironment::updateRewardWindows() {
 			transition.value = it->value;
 			transition.done = isEpisodeDone;
 
-			buffer.store(transition);
+            memoryBuffer.store(transition);
 
 			it = reward_windows.erase(it);
 		}
@@ -224,12 +224,12 @@ void TradingEnvironment::train(std::mt19937& rng) {
 
         for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
             std::cout << "Iteration #" << iter << "\n\n";
-            orderBook->update(marketUpdatePerDecision, rng);
+            orderBook->update(200, rng);
             std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
             heatmap.updateData(orderBook->getCurrentBook());
             std::cout << "Matrice updated" << "\n";
             auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
-
+           
             std::cout << "Policy : " << policy << " & value : " << value << "\n";
 
             Action action = sampleFromPolicy(policy, rng);
@@ -244,5 +244,24 @@ void TradingEnvironment::train(std::mt19937& rng) {
 
         }
         printTradeLogs();
+
+        auto [_, lastValue] = network->forward(heatmap.data, agent_state.toVector());
+        std::vector<float> advantages = memoryBuffer.computeAdvantages(lastValue);
+        std::vector<float> returns = memoryBuffer.computeReturns(lastValue);
+
+        std::cout << "=== Transitions enregistrées ===" << std::endl;
+        for (size_t i = 0; i < memoryBuffer.get().size(); ++i) {
+            const auto& t = memoryBuffer.get()[i];
+            std::cout << "Transition #" << i << std::endl;
+            std::cout << "  Action       : " << t.action << std::endl;
+            std::cout << "  LogProb      : " << t.log_prob << std::endl;
+            std::cout << "  Value        : " << t.value << std::endl;
+            std::cout << "  Reward       : " << t.reward << std::endl;
+            std::cout << "  Done         : " << t.done << std::endl;
+            std::cout << "  Advantage    : " << advantages[i] << std::endl;
+            std::cout << "  Return       : " << returns[i] << std::endl;
+            std::cout << "-----------------------------" << std::endl;
+        }
+            memoryBuffer.clear();
     }
 }

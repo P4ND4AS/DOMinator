@@ -71,7 +71,7 @@ private:
     OrderBook* orderBook;
     Heatmap heatmap;
     PolicyValueNet* network;
-    MemoryBuffer buffer;
+    MemoryBuffer memoryBuffer;
 
     AgentState agent_state;
     std::vector<RewardWindow> reward_windows;

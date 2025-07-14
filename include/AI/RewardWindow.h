@@ -29,11 +29,11 @@ struct RewardWindow {
     }
 
     bool isComplete() const {
-        return latent_pnls.size() >= 100;
+        return latent_pnls.size() >= 10;
     }
 
     float computeWeightedReward() const {
-        if (!in_position) return 0.0f; // rien à évaluer
+        if (!in_position && action == WAIT) return 0.0f; // rien à évaluer
         float reward = 0.0f;
         float total_weight = 0.0f;
         for (int i = 0; i < latent_pnls.size(); ++i) {
@@ -45,7 +45,7 @@ struct RewardWindow {
     }
 
     void addPnL(float best_bid, float best_ask, const AgentState& state) {
-        if (state.position == 0) {
+        if (state.position == 0 && action == WAIT) {
             latent_pnls.push_back(0.0f);
             return;
         }

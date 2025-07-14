@@ -189,7 +189,7 @@ PolicyValueNet::PolicyValueNet(const AIConfig& config)
     int hiddenSize = config.denseLayerSize;
     int numActions = config.numActions;
 
-    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize));
+    float scale = sqrt(2.0 / (hiddenSize + agentHiddenSize + flattenedSize)) * 0.00001f;
 
     agent_fc_weights = Eigen::MatrixXf::Random(agentHiddenSize, agentInputSize);
     agent_fc_bias = Eigen::VectorXf::Random(agentHiddenSize);
@@ -255,7 +255,7 @@ Eigen::VectorXf PolicyValueNet::relu(const Eigen::VectorXf& x) {
 }
 
 Eigen::VectorXf PolicyValueNet::softmax(const Eigen::VectorXf& x) {
-    Eigen::VectorXf cooled = x / 10.0f;
+    Eigen::VectorXf cooled = x / 3.0f;
     cooled = (cooled.array() - cooled.maxCoeff()).exp();
 
     return cooled / cooled.sum();

@@ -1,5 +1,5 @@
 {
-  "agent_input_size": 2,
+  "agent_input_size": 1,
   "agent_hidden_size":  20,
   "cnn_layers": [
     {
