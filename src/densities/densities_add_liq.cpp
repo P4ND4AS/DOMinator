@@ -6,7 +6,7 @@
 #include "densities/density_utils.h"
 
 double sampleLambdaL(SimuParams& params, double S, double q1Ask, double q1Bid, std::mt19937& rng) {
-	 double p_add_liq = 0.45;
+	 double p_add_liq = 0.005;
 	 return p_add_liq;
 }
 

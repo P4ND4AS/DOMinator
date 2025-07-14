@@ -19,47 +19,53 @@ struct RewardWindow {
     Action action;
     float proba;
     float value;
-    float entry_price;  // utilisé seulement si in_position == true
-    bool in_position;
+    float entry_price;
+    int agent_state_at_action;
     std::vector<float> latent_pnls;
 
-    RewardWindow(int idx, Action act, float price, bool in_pos, float proba, float value)
-        : decision_index(idx), action(act), entry_price(price), in_position(in_pos), 
-          proba(proba), value(value) {
+    bool isInvalid;
+
+    RewardWindow(int idx, Action act, float price, int state, float p, float v, bool invalid = false)
+        : decision_index(idx), action(act), proba(p), value(v),
+        entry_price(price), agent_state_at_action(state), isInvalid(invalid) {
     }
 
     bool isComplete() const {
-        return latent_pnls.size() >= 10;
+        return latent_pnls.size() >= 10;  // ou autre valeur N
     }
 
-    float computeWeightedReward() const {
-        if (!in_position && action == WAIT) return 0.0f; // rien à évaluer
+    float computeWeightedReward(float alpha = 0.2f) const {
+        if (agent_state_at_action == 0 && action == WAIT)
+            return -0.01f;
+        if (isInvalid) { return -0.01f; }
+
         float reward = 0.0f;
         float total_weight = 0.0f;
-        for (int i = 0; i < latent_pnls.size(); ++i) {
-            float weight = 1.0f; // poids uniforme pour l’instant
+
+        for (size_t i = 0; i < latent_pnls.size(); ++i) {
+            float weight = std::exp(-alpha * (latent_pnls.size() - 1 - i));
             reward += weight * latent_pnls[i];
             total_weight += weight;
         }
+
         return (total_weight > 0.0f) ? reward / total_weight : 0.0f;
     }
 
-    void addPnL(float best_bid, float best_ask, const AgentState& state) {
-        if (state.position == 0 && action == WAIT) {
+    void addPnL(float best_bid, float best_ask) {
+        if (agent_state_at_action == 0 && action == WAIT) {
             latent_pnls.push_back(0.0f);
             return;
         }
 
         float pnl = 0.0f;
-        if (state.position > 0) { // long
+        if (agent_state_at_action > 0) {
             pnl = best_bid - entry_price;
         }
-        else if (state.position < 0) { // short
+        else if (agent_state_at_action < 0) {
             pnl = entry_price - best_ask;
         }
 
         latent_pnls.push_back(pnl);
     }
-
-
 };
+

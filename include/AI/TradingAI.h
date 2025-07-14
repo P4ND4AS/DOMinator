@@ -12,12 +12,13 @@ constexpr float LAMBDA = 0.95f;
 constexpr float CLIP_EPS = 0.2f;
 
 struct Transition {
-    std::vector<float> observation;  // Flattened heatmap at t (peut être un pointeur ou index si trop gros)
-    Action action;                   // Action prise à t
-    float log_prob;                  // log(pi_theta(a_t | s_t)) pour l’ancienne politique
-    float value;                     // estimation V(s_t) donnée par l’ancien réseau
-    float reward;                    // récompense calculée a posteriori
-    bool done;                       // true si fin de trajectoire
+    std::vector<float> observation;  
+    int agent_state;
+    Action action;                   
+    float log_prob;                  
+    float value;                     
+    float reward;                    
+    bool done;      
 };
 
 

@@ -35,6 +35,18 @@ std::vector<float> MemoryBuffer::computeAdvantages(float lastValue) {
 		advantages[t] = adv;
 	}
 
+    // Après le calcul des advantages :
+    float mean = std::accumulate(advantages.begin(), advantages.end(), 0.0f) / advantages.size();
+    float var = 0.0f;
+    for (float a : advantages) var += (a - mean) * (a - mean);
+    var /= advantages.size();
+    float stddev = std::sqrt(var + 1e-8f);
+
+    for (float& a : advantages) {
+        a = (a - mean) / stddev;
+    }
+
+
 	return advantages;
 }
 
@@ -78,13 +90,17 @@ Action TradingEnvironment::sampleFromPolicy(const Eigen::VectorXf& policy,
 
 void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& policy, const float value) {
     int current_timestep = current_decision_index;
+    float bestbid = orderBook->getCurrentBestBid();
+    float bestask = orderBook->getCurrentBestAsk();
+
+    int currentPosition = agent_state.position;
 
     if (action == BUY_MARKET) {
         std::cout << "BUY" << "\n";
         if (agent_state.position == 0) {
             std::cout<<"long opened"<<"\n";
             agent_state.position = 1;
-            entry_price = orderBook->getCurrentBestAsk();
+            entry_price = bestask;
 
             open_trade = TradeLog{
                 current_timestep,
@@ -102,7 +118,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == -1) {
-            float exit_price = orderBook->getCurrentBestAsk();
+            float exit_price = bestask;
             float pnl = entry_price - exit_price;
 
             if (open_trade.has_value()) {
@@ -119,13 +135,15 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::ASK;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            entry_price = 0.0f;
+            entry_price = bestask;
         }
     }
     else if (action == SELL_MARKET) {
+        std::cout << "SELL" << "\n";
         if (agent_state.position == 0) {
+            std::cout << "short opened" << "\n";
             agent_state.position = -1;
-            entry_price = orderBook->getCurrentBestBid();
+            entry_price = bestbid;
 
             open_trade = TradeLog{
                 current_timestep,
@@ -142,7 +160,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             orderBook->processMarketOrder(order);
         }
         else if (agent_state.position == 1) {
-            float exit_price = orderBook->getCurrentBestBid();
+            float exit_price = bestbid;
             float pnl = exit_price - entry_price;
 
             if (open_trade.has_value()) {
@@ -159,12 +177,28 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::BID;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            entry_price = 0.0f;
+            entry_price = bestbid;
         }
     }
 
-    RewardWindow rw(current_decision_index, action, entry_price,
-        agent_state.position != 0, policy(static_cast<int>(action)), value);
+    if (action == WAIT) {
+        if (currentPosition == 1) {
+            entry_price = bestask;
+        }
+        else if (currentPosition == -1) {
+            entry_price = bestbid;
+        }
+    }
+
+
+    bool isInvalid = false;
+    if ((action == BUY_MARKET && currentPosition == 1) ||
+        (action == SELL_MARKET && currentPosition == -1)) {
+
+        isInvalid = true;
+    }
+
+    RewardWindow rw(current_decision_index, action, entry_price, currentPosition, policy[action], value, isInvalid);
     reward_windows.push_back(rw);
 }
 
@@ -172,7 +206,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
 void TradingEnvironment::updateRewardWindows() {
 
 	for (auto it = reward_windows.begin(); it != reward_windows.end();) {
-		it->addPnL(orderBook->getCurrentBestBid(), orderBook->getCurrentBestAsk(), agent_state);
+		it->addPnL(orderBook->getCurrentBestBid(), orderBook->getCurrentBestAsk());
 
 		if (it->isComplete()) {
 			float reward = it->computeWeightedReward();
@@ -216,15 +250,18 @@ void TradingEnvironment::train(std::mt19937& rng) {
     for (int traj = 0; traj < N_trajectories; ++traj) {
         std::cout << "Trajectory #" << traj << "\n\n";
         
+        std::cout << "start updating market" << "\n";
         for (int iter = 0; iter < 128; ++iter) {
-            orderBook->update(200, rng);
+            orderBook->update(20000, rng);
             heatmap.updateData(orderBook->getCurrentBook());
         }
         std::cout << "OrderBook sped up a few seconds..." << "\n";
 
+        std::cout << "marketUpdatePerDecision : " << marketUpdatePerDecision << "\n";
+
         for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
             std::cout << "Iteration #" << iter << "\n\n";
-            orderBook->update(200, rng);
+            orderBook->update(20000, rng);
             std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
             heatmap.updateData(orderBook->getCurrentBook());
             std::cout << "Matrice updated" << "\n";
@@ -237,7 +274,6 @@ void TradingEnvironment::train(std::mt19937& rng) {
             handleAction(action, policy, value);
             std::cout << "Action handled" << "\n";
             updateRewardWindows();
-            std::cout << "Reward windows updated" << "\n";
             std::cout << "\n\n";
 
             ++current_decision_index;

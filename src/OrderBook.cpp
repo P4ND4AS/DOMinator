@@ -16,7 +16,7 @@
 
 const double initialPrice = 20000.00;
 const double ticksize = 0.25;
-const int timestep = 500;
+const int timestep = 5;
 const int depth = 200;
 const Side lastSide = Side::BID;
 const double PI = 3.141592653589793;
@@ -302,7 +302,7 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
 
         double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
 
-        std::discrete_distribution<> event_dist({ p_add_liq, 0.53, 0.02, 0.0 });
+        std::discrete_distribution<> event_dist({ p_add_liq, 0.006, 0.0004, 0.9886 });
         int eventType = event_dist(rng);
 
         if (eventType == 0) {
