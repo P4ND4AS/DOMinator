@@ -12,6 +12,7 @@
 #include "UI/buttonsForTrades.h"
 #include "AI/NeuralNetwork.h"
 #include "AI/TradingAI.h"
+#include <torch/torch.h>
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -25,7 +26,6 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
-
 #include FT_FREETYPE_H
 
 const unsigned int SCR_WIDTH = 800;
@@ -129,23 +129,22 @@ int main() {
 
 
     // ------------------- AI SETUP -------------------
-    AIConfig config = loadConfig("src/AI/configAI.json");    
+    AIConfig config = loadConfig("src/AI/configAI.json");
     PolicyValueNet network(config);
 
     TradingEnvironment tradingEnvironment(&ob, &network);
     
-    try {
+    /try {
         tradingEnvironment.train(rng);
     }
     catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
     }
-
     
+    torch::Tensor x = torch::rand({ 10,3 });
+    std::cout << x;
 
-    
 
-    
     /*int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
