@@ -134,18 +134,18 @@ int main() {
 
     TradingEnvironment tradingEnvironment(&ob, &network);
     
-    /try {
+    /*try {
         tradingEnvironment.train(rng);
     }
     catch (const std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
-    }
+    }*/
     
     torch::Tensor x = torch::rand({ 10,3 });
     std::cout << x;
 
 
-    /*int iter = 1;
+    int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
         glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
@@ -305,7 +305,7 @@ int main() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();*/
+    ImGui::DestroyContext();
 
     return 0;
 }
