@@ -120,14 +120,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch-win-shared-with-deps-2.7.1+cpu\libtorch\include\torch\csrc\api\include;C:\Users\Ilan\VisualStudioProjects\libtorch-win-shared-with-deps-2.7.1+cpu\libtorch\include;$(SolutionDir)include;$(SolutionDir)include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch\include\torch\csrc\api\include;C:\Users\Ilan\VisualStudioProjects\libtorch\include;$(SolutionDir)include;$(SolutionDir)include\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch-win-shared-with-deps-2.7.1+cpu\libtorch\lib;$(SolutionDir)lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;opengl32.lib;user32.lib;gdi32.lib;freetype.lib;torch.lib;torch_cpu.lib;c10.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch\lib;$(SolutionDir)lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;opengl32.lib;user32.lib;gdi32.lib;freetype.lib;torch.lib;torch_cpu.lib;c10.lib;torch_cuda.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

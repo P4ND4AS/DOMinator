@@ -145,7 +145,7 @@ int main() {
     std::cout << x;
 
 
-    int iter = 1;
+    /*int iter = 1;
     while (!glfwWindowShouldClose(window)) {
         int windowWidth, windowHeight;
         glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
@@ -305,7 +305,7 @@ int main() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext();*/
 
     return 0;
 }
