@@ -10,9 +10,9 @@
 #include "UI/model_parameters.h"
 #include "renderDomHistogram.h"
 #include "UI/buttonsForTrades.h"
+
+#include <cuda_runtime.h>
 #include "AI/NeuralNetwork.h"
-#include "AI/TradingAI.h"
-#include <torch/torch.h>
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -129,20 +129,81 @@ int main() {
 
 
     // ------------------- AI SETUP -------------------
-    AIConfig config = loadConfig("src/AI/configAI.json");
-    PolicyValueNet network(config);
+    std::cout << "TEST EN COURS" << "\n";
+    try {
+        HMODULE torchCudaDll = LoadLibraryA("torch_cuda.dll");
+        if (torchCudaDll == NULL) {
+            std::cerr << "Échec du chargement de torch_cuda.dll. Code d'erreur : " << GetLastError() << std::endl;
+            return -1;
+        }
+        if (!torch::cuda::is_available()) {
+            std::cerr << "Erreur CUDA : " << std::endl;
+            return -1;
+        }
 
-    TradingEnvironment tradingEnvironment(&ob, &network);
-    
-    /*try {
-        tradingEnvironment.train(rng);
+
+        // Définir le device (GPU)
+        torch::Device device(torch::kCUDA);
+
+        // Créer une instance du réseau
+        TradingAgentNet model;
+        model.to(device); // Déplacer le modèle vers le GPU
+
+        // Créer des données d'entrée fictives
+        // Heatmap : forme [batch_size, channels, height, width] = [1, 1, 401, 800]
+        auto heatmap = torch::randn({ 1, 1, 401, 800 }).to(device);
+
+        // État de l'agent : forme [batch_size, 1] = [1, 1]
+        auto agent_state = torch::tensor({ {1.0f} }).to(device); // Exemple : position longue (1)
+
+        // Activer le mode évaluation
+        model.eval();
+
+        // Désactiver le calcul des gradients pour le test
+        torch::NoGradGuard no_grad;
+
+        // Effectuer une passe avant
+        auto output = model.forward(heatmap, agent_state);
+
+        // Vérifier les sorties
+        auto policy = std::get<0>(output); // Distribution de probabilité
+        auto value = std::get<1>(output);  // Valeur estimée
+
+
+        // Afficher les formes des sorties pour vérification
+        std::cout << "Forme de la sortie de la politique : " << policy.sizes() << std::endl;
+        std::cout << "Forme de la sortie de la valeur : " << value.sizes() << std::endl;
+
+        // Afficher les probabilités de la politique
+        std::cout << "Probabilités de la politique (après softmax) : " << policy << std::endl;
+        std::cout << "Valeur estimée : " << value << std::endl;
+
+        // Vérifier que les calculs sont sur GPU
+        if (policy.device().is_cuda()) {
+            std::cout << "Les calculs de la politique sont effectués sur GPU !" << std::endl;
+        }
+        else {
+            std::cout << "Erreur : Les calculs de la politique ne sont pas sur GPU !" << std::endl;
+        }
+        if (value.device().is_cuda()) {
+            std::cout << "Les calculs de la valeur sont effectués sur GPU !" << std::endl;
+        }
+        else {
+            std::cout << "Erreur : Les calculs de la valeur ne sont pas sur GPU !" << std::endl;
+        }
+
+    }
+    catch (const c10::Error& e) {
+        std::cerr << "Erreur LibTorch : " << e.what() << std::endl;
+        return -1;
     }
     catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-    }*/
-    
-    torch::Tensor x = torch::rand({ 10,3 });
-    std::cout << x;
+        std::cerr << "Erreur standard : " << e.what() << std::endl;
+        return -1;
+    }
+
+
+
 
 
     /*int iter = 1;
@@ -305,7 +366,7 @@ int main() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();*/
+    ImGui::DestroyContext();
 
-    return 0;
+    return 0;*/
 }

@@ -120,14 +120,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch\include\torch\csrc\api\include;C:\Users\Ilan\VisualStudioProjects\libtorch\include;$(SolutionDir)include;$(SolutionDir)include\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\imgui;C:\Users\Ilan\VisualStudioProjects\libtorch\include;C:\Users\Ilan\VisualStudioProjects\libtorch\include\torch\csrc\api\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Ilan\VisualStudioProjects\libtorch\lib;$(SolutionDir)lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;opengl32.lib;user32.lib;gdi32.lib;freetype.lib;torch.lib;torch_cpu.lib;c10.lib;torch_cuda.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib;C:\Users\Ilan\VisualStudioProjects\libtorch\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;opengl32.lib;user32.lib;gdi32.lib;freetype.lib;torch.lib;c10.lib;c10_cuda.lib;torch_cuda.lib;torch_cpu.lib;cudart.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -161,7 +161,6 @@
     <ClCompile Include="src\UI\model_parameters.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\AI\Activations.h" />
     <ClInclude Include="include\AI\NeuralNetwork.h" />
     <ClInclude Include="include\AI\RewardWindow.h" />
     <ClInclude Include="include\AI\TradingAI.h" />

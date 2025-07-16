@@ -2,7 +2,7 @@
 #include "Heatmap.h"
 #include <iostream>
 
-void MemoryBuffer::store(const Transition& exp) {
+/*void MemoryBuffer::store(const Transition& exp) {
 	buffer.push_back(exp);
 }
 
@@ -300,4 +300,4 @@ void TradingEnvironment::train(std::mt19937& rng) {
         }
             memoryBuffer.clear();
     }
-}
+}*/

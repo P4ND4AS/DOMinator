@@ -2,7 +2,7 @@
 #include <vector>
 #include "engine/OrderBook.h"
 #include "Heatmap.h"
-#include "RewardWindow.h"
+/*#include "RewardWindow.h"
 
 
 constexpr int N_ACTIONS = 3;
@@ -86,4 +86,4 @@ private:
     int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000.0f);
     int N_trajectories = 1;
 	bool isEpisodeDone = false;
-};
+};*/
