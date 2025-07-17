@@ -1,72 +1,160 @@
 #include "AI/TradingAI.h"
 #include "Heatmap.h"
 #include <iostream>
+#include <algorithm>
 
-/*void MemoryBuffer::store(const Transition& exp) {
-	buffer.push_back(exp);
+
+void MemoryBuffer::store(const Transition& exp) {
+    heatmaps.push_back(exp.heatmap.clone().detach().to(torch::kCUDA));
+    agent_states.push_back(exp.agent_state.clone().detach().to(torch::kCUDA));
+    actions.push_back(exp.action.clone().detach().to(torch::kCUDA));
+    log_probs.push_back(exp.log_prob.clone().detach().to(torch::kCUDA));
+    rewards.push_back(exp.reward.clone().detach().to(torch::kCUDA));
+    values.push_back(exp.value.clone().detach().to(torch::kCUDA));
+    dones.push_back(exp.done.clone().detach().to(torch::kCUDA));
 }
 
 void MemoryBuffer::clear() {
-	buffer.clear();
+    heatmaps.clear();
+    agent_states.clear();
+    actions.clear();
+    log_probs.clear();
+    rewards.clear();
+    values.clear();
+    dones.clear();
 }
 
-const std::vector<Transition>& MemoryBuffer::get() const {
-	return buffer;
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
+    torch::Tensor, torch::Tensor> MemoryBuffer::get() const {
+    // Concaténer les tenseurs pour obtenir un batch
+    auto heatmap_tensor = torch::cat(heatmaps, 0);
+    auto agent_state_tensor = torch::cat(agent_states, 0);
+    auto action_tensor = torch::cat(actions, 0);
+    auto log_prob_tensor = torch::cat(log_probs, 0);
+    auto reward_tensor = torch::cat(rewards, 0);
+    auto value_tensor = torch::cat(values, 0);
+    auto done_tensor = torch::cat(dones, 0);
+
+    return std::make_tuple(
+        heatmap_tensor,
+        agent_state_tensor,
+        action_tensor,
+        log_prob_tensor,
+        reward_tensor,
+        value_tensor,
+        done_tensor
+    );
 }
 
-std::vector<float> MemoryBuffer::computeAdvantages(float lastValue) {
-	std::vector<float> advantages(buffer.size());
-	std::vector<float> deltas(buffer.size());
-
-	float nextValue = lastValue;
-	for (int t = buffer.size() - 1; t >= 0; --t) {
-		float reward = buffer[t].reward;
-		float value = buffer[t].value;
-		bool done = buffer[t].done;
-
-		float delta = reward + (done ? 0.0f : GAMMA * nextValue) - value;
-		deltas[t] = delta;
-		nextValue = value;
-	}
-
-	float adv = 0.0f;
-	for (int t = buffer.size() - 1; t >= 0; --t) {
-		adv = deltas[t] + GAMMA * LAMBDA * adv;
-		advantages[t] = adv;
-	}
-
-    // Après le calcul des advantages :
-    float mean = std::accumulate(advantages.begin(), advantages.end(), 0.0f) / advantages.size();
-    float var = 0.0f;
-    for (float a : advantages) var += (a - mean) * (a - mean);
-    var /= advantages.size();
-    float stddev = std::sqrt(var + 1e-8f);
-
-    for (float& a : advantages) {
-        a = (a - mean) / stddev;
+torch::Tensor MemoryBuffer::computeAdvantages(float last_value, float gamma, float lambda) const {
+    if (rewards.empty()) {
+        return torch::Tensor();
     }
 
+    torch::Tensor rewards = torch::cat(rewards, 0).to(torch::kCUDA);
+    torch::Tensor values = torch::cat(values, 0).to(torch::kCUDA);
+    torch::Tensor dones = torch::cat(dones, 0).to(torch::kCUDA);
+    int64_t T = rewards.size(0);
+    torch::Tensor advantages = torch::zeros({ T }).to(torch::kCUDA);
 
-	return advantages;
+    float delta = 0.0;
+    float advantage = 0.0;
+    float next_value = last_value;
+
+    for (int64_t t = T - 1; t >= 0; --t) {
+        torch::Tensor reward = rewards[t].detach();
+        torch::Tensor value = values[t].detach();
+        torch::Tensor done = dones[t].detach();
+        if (!reward.is_nonzero() || !value.is_nonzero() || !done.is_nonzero()) {
+            throw std::runtime_error("Invalid tensor access at index " + std::to_string(t));
+        }
+        delta = reward.item<float>() + gamma * next_value * (1.0 - done.item<float>()) - value.item<float>();
+        advantage = delta + gamma * lambda * advantage * (1.0 - done.item<float>());
+        advantages[t] = advantage;
+        next_value = value.item<float>();
+    }
+
+    // Normaliser les avantages
+    if (T > 1) {
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8);
+    }
+    return advantages;
 }
 
 
-std::vector<float> MemoryBuffer::computeReturns(float lastValue) {
-	std::vector<float> returns(buffer.size());
+torch::Tensor MemoryBuffer::computeReturns(float last_value, float gamma) const {
+    if (rewards.empty()) {
+        std::cout << "'rewards' is empty" << "\n";
+        return torch::Tensor();
+    }
+    std::cout << "'rewards' to be concatenated" << "\n";
+    torch::Tensor rewards = torch::cat(rewards, 0).to(torch::kCUDA);
+    std::cout << "'rewards' concatenated" << "\n";
+    torch::Tensor dones = torch::cat(dones, 0).to(torch::kCUDA);
+    std::cout << "'dones' concatenated" << "\n";
+    int64_t T = rewards.size(0);
+    torch::Tensor returns = torch::zeros({ T }).to(torch::kCUDA);
+    std::cout << "'returns' initialized" << "\n";
 
-	float ret = lastValue;
-	for (int t = buffer.size() - 1; t >= 0; --t) {
-		float reward = buffer[t].reward;
-		bool done = buffer[t].done;
-		ret = reward + (done ? 0.0f : GAMMA * ret);
-		returns[t] = ret;
-	}
-	return returns;
+    // Calcul vectorisé des retours
+    float running_return = last_value;
+    for (int64_t t = T - 1; t >= 0; --t) {
+        // Vérifier que les tenseurs sont accessibles
+        torch::Tensor reward = rewards[t].detach();
+        std::cout << "reward tensor detached: " << reward << "\n";
+        torch::Tensor done = dones[t].detach();
+        std::cout << "done tensor detached: " << reward << "\n";
+
+        running_return = reward.item<float>() + gamma * running_return * (1.0 - done.item<float>());
+        std::cout << "running_return calculated " << "\n";
+        returns[t] = running_return;
+    }
+
+    // Normaliser les retours
+    if (T > 1) {
+        std::cout << "Normalized returns " << "\n";
+        returns = (returns - returns.mean()) / (returns.std() + 1e-8);
+    }
+    return returns;
 }
+
+
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
+    auto [heatmaps, agent_states, actions, log_probs, rewards, values, dones] = get();
+    int64_t N = heatmaps.size(0);
+    if (N == 0) {
+        return std::make_tuple(
+            torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
+        );
+    }
+
+    // Créer indices et mélanger
+    std::vector<int64_t> indices(N);
+    std::iota(indices.begin(), indices.end(), 0);
+    std::shuffle(indices.begin(), indices.end(), rng);
+
+    // Prendre les batch_size premiers indices (ou tous si batch_size > N)
+    int64_t batch_size_actual = std::min(static_cast<int64_t>(batch_size), N);
+    auto selected_indices = torch::tensor(indices).slice(0, 0, batch_size_actual).to(torch::kCUDA);
+
+    // Indexer les tenseurs
+    return std::make_tuple(
+        heatmaps.index_select(0, selected_indices),
+        agent_states.index_select(0, selected_indices),
+        actions.index_select(0, selected_indices),
+        log_probs.index_select(0, selected_indices),
+        rewards.index_select(0, selected_indices),
+        values.index_select(0, selected_indices),
+        dones.index_select(0, selected_indices)
+    );
+}
+
 
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
 
-
+/*
 TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
 	: orderBook(book), heatmap(128, 128), network(network)
 {

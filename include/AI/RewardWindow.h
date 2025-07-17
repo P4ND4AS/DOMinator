@@ -1,7 +1,7 @@
 #pragma once
 #include "TradingAI.h"
 #include <Eigen/Dense>
-/*
+
 enum Action { BUY_MARKET = 0, SELL_MARKET = 1, WAIT = 2 };
 
 struct AgentState {
@@ -67,5 +67,5 @@ struct RewardWindow {
 
         latent_pnls.push_back(pnl);
     }
-};*/
+};
 

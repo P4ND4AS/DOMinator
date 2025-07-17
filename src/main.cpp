@@ -13,6 +13,7 @@
 
 #include <cuda_runtime.h>
 #include "AI/NeuralNetwork.h"
+#include "AI/TradingAI.h"
 #include <iostream>
 #include <string> 
 #include <windows.h>
@@ -129,7 +130,7 @@ int main() {
 
 
     // ------------------- AI SETUP -------------------
-    std::cout << "TEST EN COURS" << "\n";
+    
     try {
         HMODULE torchCudaDll = LoadLibraryA("torch_cuda.dll");
         if (torchCudaDll == NULL) {
@@ -140,70 +141,88 @@ int main() {
             std::cerr << "Erreur CUDA : " << std::endl;
             return -1;
         }
-
-
         // Définir le device (GPU)
         torch::Device device(torch::kCUDA);
 
-        // Créer une instance du réseau
-        TradingAgentNet model;
-        model.to(device); // Déplacer le modèle vers le GPU
+        MemoryBuffer buffer;
 
-        // Créer des données d'entrée fictives
-        // Heatmap : forme [batch_size, channels, height, width] = [1, 1, 401, 800]
-        auto heatmap = torch::randn({ 1, 1, 401, 800 }).to(device);
+        // Générer 10 transitions fictives
+        for (int i = 0; i < 10; ++i) {
+            // Créer une heatmap fictive (1, 401, 800)
+            torch::Tensor heatmap = torch::rand({ 1, 1, 401, 800 }).to(device);
 
-        // État de l'agent : forme [batch_size, 1] = [1, 1]
-        auto agent_state = torch::tensor({ {1.0f} }).to(device); // Exemple : position longue (1)
+            // État de l'agent (-1, 0, ou 1)
+            int agent_position = (i % 3) - 1; // -1, 0, 1 cyclique
+            torch::Tensor agent_state = torch::tensor({ static_cast<float>(agent_position) }).to(device);
 
-        // Activer le mode évaluation
-        model.eval();
+            // Action (0: BUY, 1: SELL, 2: WAIT)
+            Action action = static_cast<Action>(i % 3);
+            torch::Tensor action_tensor = torch::tensor({ static_cast<int64_t>(action) }).to(device);
 
-        // Désactiver le calcul des gradients pour le test
-        torch::NoGradGuard no_grad;
+            // Log-probabilité fictive
+            torch::Tensor log_prob = torch::tensor({ -std::log(3.0f) + 0.1f * i }).to(device);
 
-        // Effectuer une passe avant
-        auto output = model.forward(heatmap, agent_state);
+            // Récompense fictive
+            torch::Tensor reward = torch::tensor({ 0.1f * (i + 1) }).to(device);
 
-        // Vérifier les sorties
-        auto policy = std::get<0>(output); // Distribution de probabilité
-        auto value = std::get<1>(output);  // Valeur estimée
+            // Valeur fictive
+            torch::Tensor value = torch::tensor({ 0.5f + 0.05f * i }).to(device);
 
+            // Done (0 sauf pour la dernière transition)
+            torch::Tensor done = torch::tensor({ i == 9 ? 1.0f : 0.0f }).to(device);
 
-        // Afficher les formes des sorties pour vérification
-        std::cout << "Forme de la sortie de la politique : " << policy.sizes() << std::endl;
-        std::cout << "Forme de la sortie de la valeur : " << value.sizes() << std::endl;
+            // Créer et stocker la transition
+            Transition transition{ heatmap, agent_state, action_tensor, log_prob, reward, value, done };
+            buffer.store(transition);
 
-        // Afficher les probabilités de la politique
-        std::cout << "Probabilités de la politique (après softmax) : " << policy << std::endl;
-        std::cout << "Valeur estimée : " << value << std::endl;
-
-        // Vérifier que les calculs sont sur GPU
-        if (policy.device().is_cuda()) {
-            std::cout << "Les calculs de la politique sont effectués sur GPU !" << std::endl;
-        }
-        else {
-            std::cout << "Erreur : Les calculs de la politique ne sont pas sur GPU !" << std::endl;
-        }
-        if (value.device().is_cuda()) {
-            std::cout << "Les calculs de la valeur sont effectués sur GPU !" << std::endl;
-        }
-        else {
-            std::cout << "Erreur : Les calculs de la valeur ne sont pas sur GPU !" << std::endl;
+            std::cout << "Stored transition " << i << ": action=" << action
+                << ", reward=" << reward.item<float>()
+                << ", value=" << value.item<float>()
+                << ", done=" << done.item<float>() << std::endl;
         }
 
-    }
-    catch (const c10::Error& e) {
-        std::cerr << "Erreur LibTorch : " << e.what() << std::endl;
-        return -1;
-    }
-    catch (const std::exception& e) {
+        
+        // Tester get()
+        std::cout << "\n=== Testing get() ===\n";
+        auto [heatmaps, agent_states, actions, log_probs, rewards, values, dones] = buffer.get();
+        std::cout << "Heatmaps shape: " << heatmaps.sizes() << ", device: " << (heatmaps.device().is_cuda() ? "CUDA" : "CPU") << std::endl;
+        std::cout << "Agent states shape: " << agent_states.sizes() << std::endl;
+        std::cout << "Actions shape: " << actions.sizes() << std::endl;
+        std::cout << "Rewards: " << rewards << std::endl;
+
+        // Tester computeReturns
+        std::cout << "\n=== Testing computeReturns ===\n";
+        float last_value = 0.6f;
+        torch::Tensor returns = buffer.computeReturns(last_value, 0.99f);
+        std::cout << "Returns shape: " << returns.sizes() << ", values: " << returns << std::endl;
+
+        // Tester computeAdvantages
+        std::cout << "\n=== Testing computeAdvantages ===\n";
+        torch::Tensor advantages = buffer.computeAdvantages(last_value, 0.99f, 0.95f);
+        std::cout << "Advantages shape: " << advantages.sizes() << ", values: " << advantages << std::endl;
+
+        // Tester sampleMiniBatch
+        std::cout << "\n=== Testing sampleMiniBatch ===\n";
+        auto [batch_heatmaps, batch_states, batch_actions, batch_log_probs, batch_rewards, batch_values, batch_dones] =
+            buffer.sampleMiniBatch(5, rng);
+        std::cout << "Mini-batch heatmaps shape: " << batch_heatmaps.sizes() << std::endl;
+        std::cout << "Mini-batch actions: " << batch_actions << std::endl;
+        std::cout << "Mini-batch rewards: " << batch_rewards << std::endl;
+
+        // Vider le buffer
+        buffer.clear();
+        std::cout << "\nBuffer cleared. Size: " << std::get<0>(buffer.get()).size(0) << std::endl;
+
+    } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;
         return -1;
     }
 
 
 
+
+
+    // ----------------------------------- BOOKMAP -----------------------------------
 
 
     /*int iter = 1;
@@ -366,7 +385,7 @@ int main() {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext();*/
 
-    return 0;*/
+    return 0;
 }

@@ -2,45 +2,57 @@
 #include <vector>
 #include "engine/OrderBook.h"
 #include "Heatmap.h"
-/*#include "RewardWindow.h"
+#include "RewardWindow.h"
+#include "NeuralNetwork.h"
+#include <torch/torch.h>
+#include <random>
 
 
-constexpr int N_ACTIONS = 3;
-
-constexpr float GAMMA = 0.99f;
-constexpr float LAMBDA = 0.95f;
-constexpr float CLIP_EPS = 0.2f;
 
 struct Transition {
-    std::vector<float> observation;  
-    int agent_state;
-    Action action;                   
-    float log_prob;                  
-    float value;                     
-    float reward;                    
-    bool done;      
+    torch::Tensor heatmap;      // Heatmap (1, 401, 800)
+    torch::Tensor agent_state;  // État de l'agent (1)
+    torch::Tensor action;       // Action choisie
+    torch::Tensor log_prob;     // Log-probabilité de l'action
+    torch::Tensor reward;       // Récompense
+    torch::Tensor value;        // Valeur estimée
+    torch::Tensor done;         // Indicateur de fin d'épisode
 };
 
 
 
 class MemoryBuffer {
 public:
-	void store(const Transition& exp);
-	void clear();
-	const std::vector<Transition>& get() const;
+    void store(const Transition& exp);
+    void clear();
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
+        torch::Tensor, torch::Tensor, torch::Tensor> get() const;
 
-	std::vector<float> computeAdvantages(float lastValue);
-	std::vector<float> computeReturns(float lastValue);
+    // Compute GAE
+    torch::Tensor computeAdvantages(float last_value, float gamma, float lambda) const;
+    // Compute returns
+    torch::Tensor computeReturns(float last_value, float gamma) const;
+
+    // Sample mini-batch
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
+        torch::Tensor, torch::Tensor, torch::Tensor>
+        sampleMiniBatch(int batch_size, std::mt19937& rng) const;
 
 private:
-	std::vector<Transition> buffer;
+    // Tensors for transitions
+    std::vector<torch::Tensor> heatmaps;     
+    std::vector<torch::Tensor> agent_states; 
+    std::vector<torch::Tensor> actions;       
+    std::vector<torch::Tensor> log_probs;     
+    std::vector<torch::Tensor> rewards;       
+    std::vector<torch::Tensor> values;        
+    std::vector<torch::Tensor> dones;         
 };
 
 
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
+/*
 
-#include "NeuralNetwork.h"
-#include <random>
 
 struct TradeLog {
     int timestep_entry;
