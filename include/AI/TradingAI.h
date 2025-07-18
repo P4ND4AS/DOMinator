@@ -81,6 +81,7 @@ public:
     void printTradeLogs() const;
     void train(std::mt19937& rng);
 
+    int current_decision_index = 0;
 private:
     OrderBook* orderBook;
     Heatmap heatmap;       
@@ -89,11 +90,12 @@ private:
     MemoryBuffer memoryBuffer;
 
     AgentState agent_state;
+    std::vector<RewardWindow> reward_windows;
     std::vector<TradeLog> trade_logs;
     std::optional<TradeLog> open_trade;
     float entry_price = 0.0f;
 
-    int current_decision_index = 0;
+    
     int decision_per_second;
     int traj_duration;
     int marketUpdatePerDecision;

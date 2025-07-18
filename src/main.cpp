@@ -244,17 +244,20 @@ int main() {
         std::cout << "Agent state: " << env.getAgentState().toVector() << std::endl;
         std::cout << "MemoryBuffer size: " << std::get<0>(env.getMemoryBuffer().get()).size(0) << std::endl;
 
-        std::cout << "Test sampleFromPolicy" << std::endl;
-        torch::Tensor state_tensor = env.getAgentState().toTensor();
-        std::cout << "state_tensor ok" << "\n";
+        std::cout << "Test sampleFromPolicy, handleAction, updateRewardWindows" << std::endl;
+  
+        for (int i = 0; i < 11; ++i) { // 11 itérations pour compléter une RewardWindow
+            torch::Tensor state_tensor = env.getAgentState().toTensor();
+            auto [policy, value] = network.forward(env.getHeatmapTensor(), state_tensor);
+            std::cout << "Policy: " << policy << ", device: " << (policy.is_cuda() ? "CUDA" : "CPU") << std::endl;
+            Action action = env.sampleFromPolicy(policy, rng);
+            std::cout << "Action sampled: " << static_cast<int>(action) << std::endl;
+            env.handleAction(action, policy, value);
+            env.updateRewardWindows();
+            env.current_decision_index++; // Incrémenter l'index
+        }
 
-        std::cout<<"device de heatmap_data_tensor: " << env.getHeatmapTensor().is_cuda() << "\n";
-
-        auto [policy, value] = network.forward(env.getHeatmapTensor(), state_tensor);
-        std::cout << "Policy: " << policy << ", device: " << (policy.is_cuda() ? "CUDA" : "CPU") << std::endl;
-        std::cout << "Value: " << value << ", device: " << (value.is_cuda() ? "CUDA" : "CPU") << std::endl;
-        Action action = env.sampleFromPolicy(policy, rng);
-        std::cout << "Action sampled: " << static_cast<int>(action) << std::endl;
+        torch::cuda::synchronize();
 
     } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;

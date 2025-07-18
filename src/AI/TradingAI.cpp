@@ -201,29 +201,32 @@ Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 
     return static_cast<Action>(action_index);
 }
-/*
-void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& policy, const float value) {
-    int current_timestep = current_decision_index;
-    float bestbid = orderBook->getCurrentBestBid();
-    float bestask = orderBook->getCurrentBestAsk();
 
+void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy, const torch::Tensor& value) {
+    int current_timestep = current_decision_index;
+    float best_bid = orderBook->getCurrentBestBid();
+    float best_ask = orderBook->getCurrentBestAsk();
     int currentPosition = agent_state.position;
 
-    if (action == BUY_MARKET) {
+    torch::Tensor log_prob = torch::log(policy[0][static_cast<int64_t>(action)])
+        .unsqueeze(0).to(torch::kCUDA);
+
+
+    if (action == Action::BUY_MARKET) {
         std::cout << "BUY" << "\n";
         if (agent_state.position == 0) {
-            std::cout<<"long opened"<<"\n";
+            std::cout << "long opened" << "\n";
             agent_state.position = 1;
-            entry_price = bestask;
+            entry_price = best_ask;
 
             open_trade = TradeLog{
                 current_timestep,
                 entry_price,
-                -1,  // pas encore fermé
+                -1, // pas encore fermé
                 0.0f,
                 0.0f,
-                BUY_MARKET,
-                WAIT  
+                Action::BUY_MARKET,
+                Action::WAIT
             };
             MarketOrder order = orderBook->generateMarketOrder();
             order.side = Side::ASK;
@@ -232,7 +235,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == -1) {
-            float exit_price = bestask;
+            float exit_price = best_ask;
             float pnl = entry_price - exit_price;
 
             if (open_trade.has_value()) {
@@ -240,7 +243,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
-                open_trade->exit_action = BUY_MARKET;
+                open_trade->exit_action = Action::BUY_MARKET;
                 trade_logs.push_back(open_trade.value());
                 open_trade.reset();
             }
@@ -249,15 +252,15 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::ASK;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            entry_price = bestask;
+            entry_price = best_ask;
         }
     }
-    else if (action == SELL_MARKET) {
+    else if (action == Action::SELL_MARKET) {
         std::cout << "SELL" << "\n";
         if (agent_state.position == 0) {
             std::cout << "short opened" << "\n";
             agent_state.position = -1;
-            entry_price = bestbid;
+            entry_price = best_bid;
 
             open_trade = TradeLog{
                 current_timestep,
@@ -265,8 +268,8 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
                 -1,
                 0.0f,
                 0.0f,
-                SELL_MARKET,
-                WAIT
+                Action::SELL_MARKET,
+                Action::WAIT
             };
             MarketOrder order = orderBook->generateMarketOrder();
             order.side = Side::BID;
@@ -274,7 +277,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             orderBook->processMarketOrder(order);
         }
         else if (agent_state.position == 1) {
-            float exit_price = bestbid;
+            float exit_price = best_bid;
             float pnl = exit_price - entry_price;
 
             if (open_trade.has_value()) {
@@ -282,7 +285,7 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
-                open_trade->exit_action = SELL_MARKET;
+                open_trade->exit_action = Action::SELL_MARKET;
                 trade_logs.push_back(open_trade.value());
                 open_trade.reset();
             }
@@ -291,55 +294,61 @@ void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& poli
             order.side = Side::BID;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            entry_price = bestbid;
+            entry_price = best_bid;
         }
     }
 
-    if (action == WAIT) {
+    if (action == Action::WAIT) {
         if (currentPosition == 1) {
-            entry_price = bestask;
+            entry_price = best_ask;
         }
         else if (currentPosition == -1) {
-            entry_price = bestbid;
+            entry_price = best_bid;
         }
     }
 
 
     bool isInvalid = false;
-    if ((action == BUY_MARKET && currentPosition == 1) ||
-        (action == SELL_MARKET && currentPosition == -1)) {
+    if ((action == Action::BUY_MARKET && currentPosition == 1) ||
+        (action == Action::SELL_MARKET && currentPosition == -1)) {
 
         isInvalid = true;
     }
 
-    RewardWindow rw(current_decision_index, action, entry_price, currentPosition, policy[action], value, isInvalid);
+    torch::Tensor heatmap_for_storage = heatmap_data_tensor.squeeze(1); // [1, 1, 401, 800] -> [1, 401, 800]
+    torch::Tensor state_tensor = agent_state.toTensor(); // [1]
+    RewardWindow rw(current_decision_index, action, entry_price, currentPosition,
+        policy[0][static_cast<int64_t>(action)].unsqueeze(0).to(torch::kCUDA),
+        value, heatmap_for_storage, state_tensor, isInvalid);
     reward_windows.push_back(rw);
 }
 
 
 void TradingEnvironment::updateRewardWindows() {
+    float best_bid = orderBook->getCurrentBestBid();
+    float best_ask = orderBook->getCurrentBestAsk();
 
-	for (auto it = reward_windows.begin(); it != reward_windows.end();) {
-		it->addPnL(orderBook->getCurrentBestBid(), orderBook->getCurrentBestAsk());
+    for (auto it = reward_windows.begin(); it != reward_windows.end();) {
+        it->addPnL(best_bid, best_ask);
 
-		if (it->isComplete()) {
-			float reward = it->computeWeightedReward();
+        if (it->isComplete()) {
+            torch::Tensor reward = it->computeWeightedReward();
+            torch::Tensor action_tensor = torch::tensor({ static_cast<int64_t>(it->action) },
+                torch::kInt64).to(torch::kCUDA);
+            torch::Tensor log_prob = torch::log(it->proba);
+            torch::Tensor done_tensor = torch::tensor({ isEpisodeDone ? 1.0f : 0.0f },
+                torch::kFloat).to(torch::kCUDA);
 
-			Transition transition;
-			transition.action = it->action;
-			transition.log_prob = std::log(it->proba);
-			transition.reward = reward;
-			transition.value = it->value;
-			transition.done = isEpisodeDone;
-
+            Transition transition{ it->heatmap, it->agent_state_tensor, action_tensor,
+                                log_prob, reward, it->value, done_tensor };
             memoryBuffer.store(transition);
 
-			it = reward_windows.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
+            it = reward_windows.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }
 
 
@@ -358,7 +367,7 @@ void TradingEnvironment::printTradeLogs() const {
     }
 }
 
-
+/*
 void TradingEnvironment::train(std::mt19937& rng) {
     Eigen::MatrixXf dummy_heatmap = Eigen::MatrixXf::Zero(401, 128);
     for (int traj = 0; traj < N_trajectories; ++traj) {
