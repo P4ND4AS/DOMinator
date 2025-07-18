@@ -144,32 +144,43 @@ int main() {
         // Définir le device (GPU)
         torch::Device device(torch::kCUDA);
 
-        MemoryBuffer buffer;
+        // Créer un MemoryBuffer avec T_max = 10
+        int64_t T_max = 10;
+        MemoryBuffer buffer(T_max);
 
         // Générer 10 transitions fictives
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < T_max; ++i) {
             // Créer une heatmap fictive (1, 401, 800)
-            torch::Tensor heatmap = torch::rand({ 1, 1, 401, 800 }).to(device);
+            torch::Tensor heatmap = torch::rand({ 1, 401, 800 }).to(device);
+ 
 
             // État de l'agent (-1, 0, ou 1)
-            int agent_position = (i % 3) - 1; // -1, 0, 1 cyclique
-            torch::Tensor agent_state = torch::tensor({ static_cast<float>(agent_position) }).to(device);
+            int agent_position = (i % 3) - 1;
+            torch::Tensor agent_state = torch::tensor({ static_cast<float>(agent_position) }).to(device); // 1D [1]
 
             // Action (0: BUY, 1: SELL, 2: WAIT)
             Action action = static_cast<Action>(i % 3);
-            torch::Tensor action_tensor = torch::tensor({ static_cast<int64_t>(action) }).to(device);
+            torch::Tensor action_tensor = torch::tensor({ static_cast<int64_t>(action) }).to(device); // 1D [1]
 
             // Log-probabilité fictive
-            torch::Tensor log_prob = torch::tensor({ -std::log(3.0f) + 0.1f * i }).to(device);
+            torch::Tensor log_prob = torch::tensor({ -std::log(3.0f) + 0.1f * i }).to(device); // 1D [1]
 
             // Récompense fictive
-            torch::Tensor reward = torch::tensor({ 0.1f * (i + 1) }).to(device);
+            torch::Tensor reward = torch::tensor({ 0.1f * (i + 1) }).to(device); // 1D [1]
 
             // Valeur fictive
-            torch::Tensor value = torch::tensor({ 0.5f + 0.05f * i }).to(device);
+            torch::Tensor value = torch::tensor({ 0.5f + 0.05f * i }).to(device); // 1D [1]
 
             // Done (0 sauf pour la dernière transition)
-            torch::Tensor done = torch::tensor({ i == 9 ? 1.0f : 0.0f }).to(device);
+            torch::Tensor done = torch::tensor({ i == T_max - 1 ? 1.0f : 0.0f }).to(device); // 1D [1]
+
+            // Vérifier les tenseurs avant stockage
+            std::cout << "Transition " << i << ": "
+                << "heatmap_shape=" << heatmap.sizes()
+                << "reward_shape=" << reward.sizes()
+                << ", reward_device=" << (reward.is_cuda() ? "CUDA" : "CPU")
+                << ", done_shape=" << done.sizes()
+                << ", done_device=" << (done.is_cuda() ? "CUDA" : "CPU") << std::endl;
 
             // Créer et stocker la transition
             Transition transition{ heatmap, agent_state, action_tensor, log_prob, reward, value, done };
@@ -178,28 +189,33 @@ int main() {
             std::cout << "Stored transition " << i << ": action=" << action
                 << ", reward=" << reward.item<float>()
                 << ", value=" << value.item<float>()
-                << ", done=" << done.item<float>() << std::endl;
+                << ", done=" << done.item<float>()
+                << ", device=" << (reward.is_cuda() ? "CUDA" : "CPU") << std::endl;
+
+            torch::cuda::synchronize();
         }
 
-        
         // Tester get()
         std::cout << "\n=== Testing get() ===\n";
         auto [heatmaps, agent_states, actions, log_probs, rewards, values, dones] = buffer.get();
-        std::cout << "Heatmaps shape: " << heatmaps.sizes() << ", device: " << (heatmaps.device().is_cuda() ? "CUDA" : "CPU") << std::endl;
+        std::cout << "Heatmaps shape: " << heatmaps.sizes() << ", device: " << (heatmaps.is_cuda() ? "CUDA" : "CPU") << std::endl;
         std::cout << "Agent states shape: " << agent_states.sizes() << std::endl;
         std::cout << "Actions shape: " << actions.sizes() << std::endl;
         std::cout << "Rewards: " << rewards << std::endl;
+        torch::cuda::synchronize();
 
         // Tester computeReturns
         std::cout << "\n=== Testing computeReturns ===\n";
         float last_value = 0.6f;
         torch::Tensor returns = buffer.computeReturns(last_value, 0.99f);
         std::cout << "Returns shape: " << returns.sizes() << ", values: " << returns << std::endl;
+        torch::cuda::synchronize();
 
         // Tester computeAdvantages
         std::cout << "\n=== Testing computeAdvantages ===\n";
         torch::Tensor advantages = buffer.computeAdvantages(last_value, 0.99f, 0.95f);
         std::cout << "Advantages shape: " << advantages.sizes() << ", values: " << advantages << std::endl;
+        torch::cuda::synchronize();
 
         // Tester sampleMiniBatch
         std::cout << "\n=== Testing sampleMiniBatch ===\n";
@@ -208,6 +224,7 @@ int main() {
         std::cout << "Mini-batch heatmaps shape: " << batch_heatmaps.sizes() << std::endl;
         std::cout << "Mini-batch actions: " << batch_actions << std::endl;
         std::cout << "Mini-batch rewards: " << batch_rewards << std::endl;
+        torch::cuda::synchronize();
 
         // Vider le buffer
         buffer.clear();

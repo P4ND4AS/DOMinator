@@ -3,127 +3,145 @@
 #include <iostream>
 #include <algorithm>
 
+MemoryBuffer::MemoryBuffer(int64_t T_max) : T_max_(T_max), current_size_(0) {
+    // Initialiser les tenseurs avec la taille maximale
+    heatmaps = torch::empty({ T_max, 1, 401, 800 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    agent_states = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    actions = torch::empty({ T_max }, torch::dtype(torch::kInt64).device(torch::kCUDA));
+    log_probs = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    rewards = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    values = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    dones = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+}
+
 
 void MemoryBuffer::store(const Transition& exp) {
-    heatmaps.push_back(exp.heatmap.clone().detach().to(torch::kCUDA));
-    agent_states.push_back(exp.agent_state.clone().detach().to(torch::kCUDA));
-    actions.push_back(exp.action.clone().detach().to(torch::kCUDA));
-    log_probs.push_back(exp.log_prob.clone().detach().to(torch::kCUDA));
-    rewards.push_back(exp.reward.clone().detach().to(torch::kCUDA));
-    values.push_back(exp.value.clone().detach().to(torch::kCUDA));
-    dones.push_back(exp.done.clone().detach().to(torch::kCUDA));
+    if (current_size_ >= T_max_) {
+        throw std::runtime_error("MemoryBuffer is full");
+    }
+    if (!exp.heatmap.defined() || !exp.agent_state.defined() || !exp.action.defined() ||
+        !exp.log_prob.defined() || !exp.reward.defined() || !exp.value.defined() || !exp.done.defined()) {
+        throw std::runtime_error("Invalid tensor in store");
+    }
+    if (!exp.heatmap.is_cuda() || !exp.agent_state.is_cuda() || !exp.action.is_cuda() ||
+        !exp.log_prob.is_cuda() || !exp.reward.is_cuda() || !exp.value.is_cuda() || !exp.done.is_cuda()) {
+        throw std::runtime_error("Tensor not on CUDA in store");
+    }
+    if (exp.agent_state.dim() != 1 || exp.action.dim() != 1 || exp.log_prob.dim() != 1 ||
+        exp.reward.dim() != 1 || exp.value.dim() != 1 || exp.done.dim() != 1) {
+        throw std::runtime_error("Transition tensor is not 1D");
+    }
+    if (exp.heatmap.sizes() != torch::IntArrayRef({ 1, 401, 800 })) {
+        throw std::runtime_error("Heatmap shape mismatch: expected [1, 401, 800], got " +
+            std::to_string(exp.heatmap.sizes()[0]) + "," +
+            std::to_string(exp.heatmap.sizes()[1]) + "," +
+            std::to_string(exp.heatmap.sizes()[2]));
+    }
+
+    heatmaps[current_size_] = exp.heatmap.clone().detach();
+    agent_states[current_size_] = exp.agent_state.clone().detach().item<float>();
+    actions[current_size_] = exp.action.clone().detach().item<int64_t>();
+    log_probs[current_size_] = exp.log_prob.clone().detach().item<float>();
+    rewards[current_size_] = exp.reward.clone().detach().item<float>();
+    values[current_size_] = exp.value.clone().detach().item<float>();
+    dones[current_size_] = exp.done.clone().detach().item<float>();
+    current_size_++;
 }
 
 void MemoryBuffer::clear() {
-    heatmaps.clear();
-    agent_states.clear();
-    actions.clear();
-    log_probs.clear();
-    rewards.clear();
-    values.clear();
-    dones.clear();
+    current_size_ = 0;
+    
+    heatmaps.zero_();
+    agent_states.zero_();
+    actions.zero_();
+    log_probs.zero_();
+    rewards.zero_();
+    values.zero_();
+    dones.zero_();
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
-    torch::Tensor, torch::Tensor> MemoryBuffer::get() const {
-    // Concaténer les tenseurs pour obtenir un batch
-    auto heatmap_tensor = torch::cat(heatmaps, 0);
-    auto agent_state_tensor = torch::cat(agent_states, 0);
-    auto action_tensor = torch::cat(actions, 0);
-    auto log_prob_tensor = torch::cat(log_probs, 0);
-    auto reward_tensor = torch::cat(rewards, 0);
-    auto value_tensor = torch::cat(values, 0);
-    auto done_tensor = torch::cat(dones, 0);
-
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
+    torch::Tensor, torch::Tensor, torch::Tensor> MemoryBuffer::get() const {
+    if (current_size_ == 0) {
+        return std::make_tuple(
+            torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
+        );
+    }
+    // Retourner les tranches des tenseurs jusqu'à current_size_
     return std::make_tuple(
-        heatmap_tensor,
-        agent_state_tensor,
-        action_tensor,
-        log_prob_tensor,
-        reward_tensor,
-        value_tensor,
-        done_tensor
+        heatmaps.slice(0, 0, current_size_),
+        agent_states.slice(0, 0, current_size_),
+        actions.slice(0, 0, current_size_),
+        log_probs.slice(0, 0, current_size_),
+        rewards.slice(0, 0, current_size_),
+        values.slice(0, 0, current_size_),
+        dones.slice(0, 0, current_size_)
     );
 }
 
-torch::Tensor MemoryBuffer::computeAdvantages(float last_value, float gamma, float lambda) const {
-    if (rewards.empty()) {
+torch::Tensor MemoryBuffer::computeReturns(float last_value, float gamma) const {
+    if (current_size_ == 0) {
         return torch::Tensor();
     }
 
-    torch::Tensor rewards = torch::cat(rewards, 0).to(torch::kCUDA);
-    torch::Tensor values = torch::cat(values, 0).to(torch::kCUDA);
-    torch::Tensor dones = torch::cat(dones, 0).to(torch::kCUDA);
-    int64_t T = rewards.size(0);
-    torch::Tensor advantages = torch::zeros({ T }).to(torch::kCUDA);
+    torch::Tensor rewards_tensor = rewards.slice(0, 0, current_size_);
+    torch::Tensor dones_tensor = dones.slice(0, 0, current_size_);
+    int64_t T = current_size_;
+    torch::Tensor returns = torch::zeros({ T }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+
+    float running_return = last_value;
+    for (int64_t t = T - 1; t >= 0; --t) {
+        torch::Tensor reward = rewards_tensor[t].detach();
+        torch::Tensor done = dones_tensor[t].detach();
+        running_return = reward.item<float>() + gamma * running_return * (1.0 - done.item<float>());
+        returns[t] = running_return;
+    }
+
+    if (T > 1) {
+        returns = (returns - returns.mean()) / (returns.std() + 1e-8);
+    }
+    torch::cuda::synchronize();
+    return returns;
+}
+
+
+torch::Tensor MemoryBuffer::computeAdvantages(float last_value, float gamma, float lambda) const {
+    if (current_size_ == 0) {
+        return torch::Tensor();
+    }
+
+    torch::Tensor rewards_tensor = rewards.slice(0, 0, current_size_);
+    torch::Tensor values_tensor = values.slice(0, 0, current_size_);
+    torch::Tensor dones_tensor = dones.slice(0, 0, current_size_);
+    int64_t T = current_size_;
+    torch::Tensor advantages = torch::zeros({ T }, torch::dtype(torch::kFloat).device(torch::kCUDA));
 
     float delta = 0.0;
     float advantage = 0.0;
     float next_value = last_value;
 
     for (int64_t t = T - 1; t >= 0; --t) {
-        torch::Tensor reward = rewards[t].detach();
-        torch::Tensor value = values[t].detach();
-        torch::Tensor done = dones[t].detach();
-        if (!reward.is_nonzero() || !value.is_nonzero() || !done.is_nonzero()) {
-            throw std::runtime_error("Invalid tensor access at index " + std::to_string(t));
-        }
+        torch::Tensor reward = rewards_tensor[t].detach();
+        torch::Tensor value = values_tensor[t].detach();
+        torch::Tensor done = dones_tensor[t].detach();
         delta = reward.item<float>() + gamma * next_value * (1.0 - done.item<float>()) - value.item<float>();
         advantage = delta + gamma * lambda * advantage * (1.0 - done.item<float>());
         advantages[t] = advantage;
         next_value = value.item<float>();
     }
 
-    // Normaliser les avantages
     if (T > 1) {
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8);
     }
+    torch::cuda::synchronize();
     return advantages;
-}
-
-
-torch::Tensor MemoryBuffer::computeReturns(float last_value, float gamma) const {
-    if (rewards.empty()) {
-        std::cout << "'rewards' is empty" << "\n";
-        return torch::Tensor();
-    }
-    std::cout << "'rewards' to be concatenated" << "\n";
-    torch::Tensor rewards = torch::cat(rewards, 0).to(torch::kCUDA);
-    std::cout << "'rewards' concatenated" << "\n";
-    torch::Tensor dones = torch::cat(dones, 0).to(torch::kCUDA);
-    std::cout << "'dones' concatenated" << "\n";
-    int64_t T = rewards.size(0);
-    torch::Tensor returns = torch::zeros({ T }).to(torch::kCUDA);
-    std::cout << "'returns' initialized" << "\n";
-
-    // Calcul vectorisé des retours
-    float running_return = last_value;
-    for (int64_t t = T - 1; t >= 0; --t) {
-        // Vérifier que les tenseurs sont accessibles
-        torch::Tensor reward = rewards[t].detach();
-        std::cout << "reward tensor detached: " << reward << "\n";
-        torch::Tensor done = dones[t].detach();
-        std::cout << "done tensor detached: " << reward << "\n";
-
-        running_return = reward.item<float>() + gamma * running_return * (1.0 - done.item<float>());
-        std::cout << "running_return calculated " << "\n";
-        returns[t] = running_return;
-    }
-
-    // Normaliser les retours
-    if (T > 1) {
-        std::cout << "Normalized returns " << "\n";
-        returns = (returns - returns.mean()) / (returns.std() + 1e-8);
-    }
-    return returns;
 }
 
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
-    auto [heatmaps, agent_states, actions, log_probs, rewards, values, dones] = get();
-    int64_t N = heatmaps.size(0);
-    if (N == 0) {
+    if (current_size_ == 0) {
         return std::make_tuple(
             torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
@@ -131,23 +149,23 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
     }
 
     // Créer indices et mélanger
-    std::vector<int64_t> indices(N);
+    std::vector<int64_t> indices(current_size_);
     std::iota(indices.begin(), indices.end(), 0);
     std::shuffle(indices.begin(), indices.end(), rng);
 
-    // Prendre les batch_size premiers indices (ou tous si batch_size > N)
-    int64_t batch_size_actual = std::min(static_cast<int64_t>(batch_size), N);
+    // Prendre les batch_size premiers indices
+    int64_t batch_size_actual = std::min(static_cast<int64_t>(batch_size), current_size_);
     auto selected_indices = torch::tensor(indices).slice(0, 0, batch_size_actual).to(torch::kCUDA);
 
-    // Indexer les tenseurs
+    // Retourner les tranches indexées
     return std::make_tuple(
-        heatmaps.index_select(0, selected_indices),
-        agent_states.index_select(0, selected_indices),
-        actions.index_select(0, selected_indices),
-        log_probs.index_select(0, selected_indices),
-        rewards.index_select(0, selected_indices),
-        values.index_select(0, selected_indices),
-        dones.index_select(0, selected_indices)
+        heatmaps.slice(0, 0, current_size_).index_select(0, selected_indices),
+        agent_states.slice(0, 0, current_size_).index_select(0, selected_indices),
+        actions.slice(0, 0, current_size_).index_select(0, selected_indices),
+        log_probs.slice(0, 0, current_size_).index_select(0, selected_indices),
+        rewards.slice(0, 0, current_size_).index_select(0, selected_indices),
+        values.slice(0, 0, current_size_).index_select(0, selected_indices),
+        dones.slice(0, 0, current_size_).index_select(0, selected_indices)
     );
 }
 
