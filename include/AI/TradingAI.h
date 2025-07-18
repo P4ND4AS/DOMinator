@@ -4,7 +4,6 @@
 #include "Heatmap.h"
 #include "RewardWindow.h"
 #include "NeuralNetwork.h"
-#include <torch/torch.h>
 #include <random>
 
 

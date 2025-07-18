@@ -28,6 +28,8 @@ TradingAgentNet::TradingAgentNet() {
     // Têtes pour la politique et la valeur
     policy_head = register_module("policy_head", torch::nn::Linear(128, 3));
     value_head = register_module("value_head", torch::nn::Linear(128, 1));
+
+    to(torch::kCUDA);
 }
 
 
@@ -43,7 +45,7 @@ std::pair<torch::Tensor, torch::Tensor> TradingAgentNet::forward(torch::Tensor h
 
     // MLP pour l'état
     auto s = torch::relu(fc_state->forward(state));
-
+    s = s.unsqueeze(0);
     // Concaténation
     auto combined = torch::cat({ x, s }, 1);
 

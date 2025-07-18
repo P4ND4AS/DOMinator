@@ -181,23 +181,26 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
 {
     Eigen::MatrixXf heatmap_data = heatmap.data;
 
-    heatmap_data_tensor = torch::from_blob(heatmap_data.data(), { 1, 401, 800 }, 
+    heatmap_data_tensor = torch::from_blob(heatmap_data.data(), { 1, 1, 401, 800 }, 
         torch::kFloat).to(torch::kCUDA);
 }
 
 
-/*Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
+Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
 
-    auto policy_cpu = policy.cpu();
-    std::vector<float> probs = { policy_cpu[0].item<float>(), 
-        policy_cpu[1].item<float>(), policy_cpu[2].item<float>() };
+    auto policy_flat = policy.cpu().squeeze(0); // [1, 3] -> [3]
+    std::vector<float> probs = {
+        policy_flat[0].item<float>(),
+        policy_flat[1].item<float>(),
+        policy_flat[2].item<float>()
+    };
 
     std::discrete_distribution<int> dist(probs.begin(), probs.end());
     int action_index = dist(rng);
 
     return static_cast<Action>(action_index);
-}*/
+}
 /*
 void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& policy, const float value) {
     int current_timestep = current_decision_index;

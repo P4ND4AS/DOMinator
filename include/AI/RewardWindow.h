@@ -1,6 +1,6 @@
 #pragma once
-#include "TradingAI.h"
 #include <Eigen/Dense>
+#include <torch/torch.h>
 
 enum Action { BUY_MARKET = 0, SELL_MARKET = 1, WAIT = 2 };
 
@@ -11,6 +11,10 @@ struct AgentState {
         Eigen::VectorXf vec(1);
         vec << position;
         return vec;
+    }
+
+    torch::Tensor toTensor() const {
+        return torch::tensor({ static_cast<float>(position) }, torch::kFloat).to(torch::kCUDA);
     }
 };
 
