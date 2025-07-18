@@ -340,7 +340,7 @@ void TradingEnvironment::updateRewardWindows() {
                 torch::kFloat).to(torch::kCUDA);
 
             Transition transition{ it->heatmap, it->agent_state_tensor, action_tensor,
-                                log_prob, reward, it->value, done_tensor };
+                                log_prob, reward, it->value.squeeze(0), done_tensor};
             memoryBuffer.store(transition);
 
             it = reward_windows.erase(it);
