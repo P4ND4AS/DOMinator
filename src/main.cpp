@@ -230,6 +230,22 @@ int main() {
         buffer.clear();
         std::cout << "\nBuffer cleared. Size: " << std::get<0>(buffer.get()).size(0) << std::endl;
 
+
+        // Créer TradingAgentNet
+        std::cout << "Création TradingAgentNet..." << std::endl;
+        TradingAgentNet network;
+
+        // Tester le constructeur de TradingEnvironment
+        std::cout << "Test le constructeur de TradingEnvironment" << std::endl;
+        TradingEnvironment env(&ob, &network, 10, 10, 1);
+
+        // Vérifier l'initialisation
+        std::cout << "Heatmap tensor shape: " << env.getHeatmapTensor().sizes() << ", device: " << (env.getHeatmapTensor().is_cuda() ? "CUDA" : "CPU") << std::endl;
+        std::cout << "Agent state: " << env.getAgentState().toVector() << std::endl;
+        std::cout << "MemoryBuffer size: " << std::get<0>(env.getMemoryBuffer().get()).size(0) << std::endl;
+
+
+
     } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;
         return -1;

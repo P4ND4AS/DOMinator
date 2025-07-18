@@ -172,28 +172,33 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
 
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
 
-/*
-TradingEnvironment::TradingEnvironment(OrderBook* book, PolicyValueNet* network)
-	: orderBook(book), heatmap(128, 128), network(network)
+
+TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network, int N_trajectories,
+    int traj_duration, int decision_per_second) : orderBook(book), network(network), 
+    traj_duration(traj_duration), decision_per_second(decision_per_second), 
+    memoryBuffer(traj_duration * decision_per_second), heatmap(0, 800)
+
 {
-    std::cout << "Environment created" << "\n";
-    std::cout << "Shape of heatmap data : " << heatmap.data.rows() << "x" << heatmap.data.cols() << "\n\n";
-    if (!network) {
-        std::cerr << "Erreur: network est nullptr!" << std::endl;
-        return;
-    }
+    Eigen::MatrixXf heatmap_data = heatmap.data;
+
+    heatmap_data_tensor = torch::from_blob(heatmap_data.data(), { 1, 401, 800 }, 
+        torch::kFloat).to(torch::kCUDA);
 }
 
 
-Action TradingEnvironment::sampleFromPolicy(const Eigen::VectorXf& policy,
+/*Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
-	if (policy.size() != 3) { throw std::invalid_argument("Policy must have 3 elements"); }
 
-	std::discrete_distribution<int> dist(policy.begin(), policy.end());
-	int action_index = dist(rng);
-	return static_cast<Action>(action_index);
-}
+    auto policy_cpu = policy.cpu();
+    std::vector<float> probs = { policy_cpu[0].item<float>(), 
+        policy_cpu[1].item<float>(), policy_cpu[2].item<float>() };
 
+    std::discrete_distribution<int> dist(probs.begin(), probs.end());
+    int action_index = dist(rng);
+
+    return static_cast<Action>(action_index);
+}*/
+/*
 void TradingEnvironment::handleAction(Action action, const Eigen::VectorXf& policy, const float value) {
     int current_timestep = current_decision_index;
     float bestbid = orderBook->getCurrentBestBid();

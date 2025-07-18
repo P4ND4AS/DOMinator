@@ -50,7 +50,7 @@ private:
 
 
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
-/*
+
 
 
 struct TradeLog {
@@ -67,34 +67,36 @@ struct TradeLog {
 class TradingEnvironment {
 public:
 
-    TradingEnvironment(OrderBook* book, PolicyValueNet* network);
+    TradingEnvironment(OrderBook* book, TradingAgentNet* network, int N_trajectories = 1,
+        int traj_duration = 10, int decision_per_second = 10);
 
-    Action sampleFromPolicy(const Eigen::VectorXf& policy, std::mt19937& rng);
-    void handleAction(Action action, const Eigen::VectorXf& policy, const float value);
+    Action sampleFromPolicy(const torch::Tensor& policy, std::mt19937& rng);
+
+    void handleAction(Action action, const torch::Tensor& log_prob, const torch::Tensor& value);
     void updateRewardWindows();
 
 	AgentState getAgentState() const { return agent_state; }
+    torch::Tensor getHeatmapTensor() const { return heatmap_data_tensor; }
+    MemoryBuffer getMemoryBuffer() const { return memoryBuffer; }
 
     void printTradeLogs() const;
-
     void train(std::mt19937& rng);
 
 private:
     OrderBook* orderBook;
-    Heatmap heatmap;
-    PolicyValueNet* network;
+    Heatmap heatmap;       
+    torch::Tensor heatmap_data_tensor;
+    TradingAgentNet* network;
     MemoryBuffer memoryBuffer;
 
     AgentState agent_state;
-    std::vector<RewardWindow> reward_windows;
     std::vector<TradeLog> trade_logs;
     std::optional<TradeLog> open_trade;
     float entry_price = 0.0f;
 
     int current_decision_index = 0;
-    int decision_per_second = 10;
-    int traj_duration = 10;
-    int marketUpdatePerDecision = 1 / (decision_per_second * timestep / 1000000.0f);
-    int N_trajectories = 1;
-	bool isEpisodeDone = false;
-};*/
+    int decision_per_second;
+    int traj_duration;
+    int marketUpdatePerDecision;
+    bool isEpisodeDone = false;
+};
