@@ -6,7 +6,7 @@
 MemoryBuffer::MemoryBuffer(int64_t T_max) : T_max_(T_max), current_size_(0) {
     // Initialiser les tenseurs avec la taille maximale
     heatmaps = torch::empty({ T_max, 1, 401, 800 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
-    agent_states = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    agent_states = torch::empty({ T_max, 1 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     actions = torch::empty({ T_max }, torch::dtype(torch::kInt64).device(torch::kCUDA));
     log_probs = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     rewards = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
@@ -39,7 +39,7 @@ void MemoryBuffer::store(const Transition& exp) {
     }
 
     heatmaps[current_size_] = exp.heatmap.clone().detach();
-    agent_states[current_size_] = exp.agent_state.clone().detach().item<float>();
+    agent_states[current_size_] = exp.agent_state.clone().detach();
     actions[current_size_] = exp.action.clone().detach().item<int64_t>();
     log_probs[current_size_] = exp.log_prob.clone().detach().item<float>();
     rewards[current_size_] = exp.reward.clone().detach().item<float>();
@@ -187,6 +187,7 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
  
 }
 
+TradingEnvironment::~TradingEnvironment() { delete optimizer; }
 
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
@@ -382,9 +383,9 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         heatmap.updateData(orderBook->getCurrentBook());
         heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 },
             torch::kFloat).to(torch::kCUDA);
-        
+        torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
-        auto [policy, value] = network->forward(heatmap_data_tensor, agent_state.toTensor());
+        auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor);
         std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
         std::cout << "  Value: " << value.item<float>() << std::endl;
 
@@ -437,4 +438,116 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     std::cout << "=== Trade history ===" << std::endl;
     printTradeLogs();
 
+}
+
+void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_size, 
+    float clip_param, float value_loss_coef, float entropy_coef) {
+    std::cout << "=== Optimizing network ===" << std::endl;
+    const auto& transitions = memoryBuffer.get();
+    int64_t num_transitions = std::get<0>(transitions).size(0);
+    if (num_transitions == 0) {
+        std::cout << "No transitions to optimize" << std::endl;
+        return;
+    }
+
+    // Compute Advantages and Returns
+    float last_value = 0.0f; 
+    float gamma = 0.99f; 
+    float lambda = 0.95f; 
+    torch::Tensor advantages = memoryBuffer.computeAdvantages(last_value, gamma, lambda);
+    torch::Tensor returns = memoryBuffer.computeReturns(last_value, gamma);
+
+    // Optimization loop
+    for (int epoch = 0; epoch < num_epochs; ++epoch) {
+        std::cout << "Epoch " << epoch << "/" << num_epochs << "\n";
+
+        int64_t num_batches = (num_transitions + batch_size - 1) / batch_size;
+
+        for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
+            //Sample minibatch
+            auto batch = memoryBuffer.sampleMiniBatch(batch_size, rng);
+            auto batch_states = std::get<0>(batch); 
+            auto batch_agent_states = std::get<1>(batch); 
+            auto batch_actions = std::get<2>(batch); 
+            auto batch_old_log_probs = std::get<3>(batch); 
+            auto batch_rewards = std::get<4>(batch); 
+            auto batch_old_values = std::get<5>(batch); 
+            auto batch_dones = std::get<6>(batch); 
+
+            // Extract Advantages and Returns for that specific mini-batch
+            auto batch_advantages = advantages.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
+            auto batch_returns = returns.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
+
+            std::cout << "batch_states: " << batch_states.sizes() << std::endl;
+            std::cout << "batch_agent_states: " << batch_agent_states.sizes() << std::endl;
+            // Compute new policy and value
+            auto [policy, value] = network->forward(batch_states, batch_agent_states);
+            auto log_probs = torch::log(policy.gather(1, batch_actions.unsqueeze(1))).squeeze(1);
+            auto ratios = torch::exp(log_probs - batch_old_log_probs);
+
+            // Perte PPO
+            auto surr1 = ratios * batch_advantages;
+            auto surr2 = torch::clamp(ratios, 1.0f - clip_param, 1.0f + clip_param) * batch_advantages;
+            auto policy_loss = -torch::min(surr1, surr2).mean();
+
+            // Perte de valeur
+            auto value_loss = torch::mse_loss(value.squeeze(1), batch_returns);
+
+            // Entropie
+            auto entropy = -(policy * torch::log(policy + 1e-10)).sum(1).mean();
+
+            // Perte totale
+            auto loss = policy_loss + value_loss_coef * value_loss - entropy_coef * entropy;
+
+            // Backpropagation
+            optimizer->zero_grad();
+            loss.backward();
+            optimizer->step();
+
+            // Logs
+            std::cout << "  Batch " << batch_idx << "/" << num_batches
+                << ": Policy loss = " << policy_loss.item<float>()
+                << ", Value loss = " << value_loss.item<float>()
+                << ", Entropy = " << entropy.item<float>()
+                << ", Total loss = " << loss.item<float>() << std::endl;
+        }
+    }
+
+    // Vider le buffer
+    memoryBuffer.clear();
+    std::cout << "Optimization complete, MemoryBuffer cleared" << std::endl;
+}
+
+
+void TradingEnvironment::computeMetrics() {
+    std::cout << "=== Trading Metrics ===" << std::endl;
+    if (trade_logs.empty()) {
+        std::cout << "No trades recorded" << std::endl;
+        return;
+    }
+
+    float total_pnl = 0.0f;
+    float max_drawdown = 0.0f;
+    float running_pnl = 0.0f;
+    std::vector<float> pnls;
+    for (const auto& trade : trade_logs) {
+        total_pnl += trade.pnl;
+        running_pnl += trade.pnl;
+        max_drawdown = std::min(max_drawdown, running_pnl);
+        pnls.push_back(trade.pnl);
+    }
+
+    // Calculer le Sharpe ratio
+    float mean_pnl = total_pnl / std::max(1, static_cast<int>(pnls.size()));
+    float variance = 0.0f;
+    for (float pnl : pnls) {
+        variance += (pnl - mean_pnl) * (pnl - mean_pnl);
+    }
+    variance /= std::max(1, static_cast<int>(pnls.size()));
+    float sharpe = variance > 0.0f ? mean_pnl / (std::sqrt(variance) + 1e-8) : 0.0f;
+
+    std::cout << "Number of trades: " << trade_logs.size() << std::endl;
+    std::cout << "Total PnL: " << total_pnl << std::endl;
+    std::cout << "Max Drawdown: " << max_drawdown << std::endl;
+    std::cout << "Sharpe Ratio: " << sharpe << std::endl;
 }

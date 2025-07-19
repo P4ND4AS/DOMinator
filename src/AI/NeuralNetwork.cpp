@@ -45,7 +45,6 @@ std::pair<torch::Tensor, torch::Tensor> TradingAgentNet::forward(torch::Tensor h
 
     // MLP pour l'état
     auto s = torch::relu(fc_state->forward(state));
-    s = s.unsqueeze(0);
     // Concaténation
     auto combined = torch::cat({ x, s }, 1);
 

@@ -153,6 +153,8 @@ int main() {
         // Tester collectTransitions
         std::cout << "=== Testing collectTransitions ===" << std::endl;
         env.collectTransitions(rng);
+        env.optimize(rng, 5, 32);
+        env.computeMetrics();
 
         std::cout << "=== Test completed ===" << std::endl;
         torch::cuda::synchronize();

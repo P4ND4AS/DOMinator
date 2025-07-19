@@ -88,7 +88,7 @@ struct RewardWindow {
         else if (action == Action::SELL_MARKET) {
             if (agent_state_at_action >= 0) { pnl = entry_price - best_ask; }
         }
-   
+
         auto new_pnl = torch::tensor({ pnl }, torch::kFloat).to(torch::kCUDA);
         latent_pnls = torch::cat({ latent_pnls, new_pnl });
     }

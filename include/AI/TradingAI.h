@@ -39,7 +39,7 @@ private:
     int64_t T_max_;              // Taille maximale de la trajectoire
     int64_t current_size_;       // Nombre de transitions stockées
     torch::Tensor heatmaps;      // [T_max, 1, 401, 800]
-    torch::Tensor agent_states;  // [T_max]
+    torch::Tensor agent_states;  // [T_max, 1]
     torch::Tensor actions;       // [T_max]
     torch::Tensor log_probs;     // [T_max]
     torch::Tensor rewards;       // [T_max]
@@ -69,6 +69,8 @@ public:
     TradingEnvironment(OrderBook* book, TradingAgentNet* network, int N_trajectories = 1,
         int traj_duration = 10, int decision_per_second = 10);
 
+    ~TradingEnvironment();
+
     Action sampleFromPolicy(const torch::Tensor& policy, std::mt19937& rng);
 
     void handleAction(Action action, const torch::Tensor& log_prob, const torch::Tensor& value);
@@ -79,8 +81,10 @@ public:
     MemoryBuffer getMemoryBuffer() const { return memoryBuffer; }
 
     void printTradeLogs() const;
+    void computeMetrics();
+
     void collectTransitions(std::mt19937& rng);
-    void optimize(int num_epochs, int batch_size, float clip_param = 0.2f,
+    void optimize(std::mt19937& rng, int num_epochs, int batch_size, float clip_param = 0.2f,
         float value_loss_coeff = 0.5f, float entropy_coef = 0.01f);
 
     int current_decision_index = 0;
