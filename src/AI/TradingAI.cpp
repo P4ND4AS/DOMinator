@@ -206,7 +206,7 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
     int current_timestep = current_decision_index;
     float best_bid = orderBook->getCurrentBestBid();
     float best_ask = orderBook->getCurrentBestAsk();
-    int currentPosition = agent_state.position;
+    int current_position = agent_state.position;
 
     torch::Tensor log_prob = torch::log(policy[0][static_cast<int64_t>(action)])
         .unsqueeze(0).to(torch::kCUDA);
@@ -275,6 +275,7 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
             order.side = Side::BID;
             order.size = 1;
             orderBook->processMarketOrder(order);
+            std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == 1) {
             float exit_price = best_bid;
@@ -299,25 +300,25 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
     }
 
     if (action == Action::WAIT) {
-        if (currentPosition == 1) {
+        if (agent_state.position == 1) {
             entry_price = best_ask;
         }
-        else if (currentPosition == -1) {
+        else if (agent_state.position == -1) {
             entry_price = best_bid;
         }
     }
 
 
     bool isInvalid = false;
-    if ((action == Action::BUY_MARKET && currentPosition == 1) ||
-        (action == Action::SELL_MARKET && currentPosition == -1)) {
+    if ((action == Action::BUY_MARKET && current_position == 1) ||
+        (action == Action::SELL_MARKET && current_position == -1)) {
 
         isInvalid = true;
     }
 
     torch::Tensor heatmap_for_storage = heatmap_data_tensor.squeeze(1); // [1, 1, 401, 800] -> [1, 401, 800]
     torch::Tensor state_tensor = agent_state.toTensor(); // [1]
-    RewardWindow rw(current_decision_index, action, entry_price, currentPosition,
+    RewardWindow rw(current_decision_index, action, entry_price, current_position,
         policy[0][static_cast<int64_t>(action)].unsqueeze(0).to(torch::kCUDA),
         value, heatmap_for_storage, state_tensor, isInvalid);
     reward_windows.push_back(rw);
@@ -338,9 +339,8 @@ void TradingEnvironment::updateRewardWindows() {
             torch::Tensor log_prob = torch::log(it->proba);
             torch::Tensor done_tensor = torch::tensor({ isEpisodeDone ? 1.0f : 0.0f },
                 torch::kFloat).to(torch::kCUDA);
-
             Transition transition{ it->heatmap, it->agent_state_tensor, action_tensor,
-                                log_prob, reward, it->value.squeeze(0), done_tensor};
+                                log_prob, reward, it->value.squeeze(0), done_tensor };
             memoryBuffer.store(transition);
 
             it = reward_windows.erase(it);

@@ -144,118 +144,73 @@ int main() {
         // Définir le device (GPU)
         torch::Device device(torch::kCUDA);
 
-        // Créer un MemoryBuffer avec T_max = 10
-        int64_t T_max = 10;
-        MemoryBuffer buffer(T_max);
-
-        // Générer 10 transitions fictives
-        for (int i = 0; i < T_max; ++i) {
-            // Créer une heatmap fictive (1, 401, 800)
-            torch::Tensor heatmap = torch::rand({ 1, 401, 800 }).to(device);
- 
-
-            // État de l'agent (-1, 0, ou 1)
-            int agent_position = (i % 3) - 1;
-            torch::Tensor agent_state = torch::tensor({ static_cast<float>(agent_position) }).to(device); // 1D [1]
-
-            // Action (0: BUY, 1: SELL, 2: WAIT)
-            Action action = static_cast<Action>(i % 3);
-            torch::Tensor action_tensor = torch::tensor({ static_cast<int64_t>(action) }).to(device); // 1D [1]
-
-            // Log-probabilité fictive
-            torch::Tensor log_prob = torch::tensor({ -std::log(3.0f) + 0.1f * i }).to(device); // 1D [1]
-
-            // Récompense fictive
-            torch::Tensor reward = torch::tensor({ 0.1f * (i + 1) }).to(device); // 1D [1]
-
-            // Valeur fictive
-            torch::Tensor value = torch::tensor({ 0.5f + 0.05f * i }).to(device); // 1D [1]
-
-            // Done (0 sauf pour la dernière transition)
-            torch::Tensor done = torch::tensor({ i == T_max - 1 ? 1.0f : 0.0f }).to(device); // 1D [1]
-
-            // Vérifier les tenseurs avant stockage
-            std::cout << "Transition " << i << ": "
-                << "heatmap_shape=" << heatmap.sizes()
-                << "reward_shape=" << reward.sizes()
-                << ", reward_device=" << (reward.is_cuda() ? "CUDA" : "CPU")
-                << ", done_shape=" << done.sizes()
-                << ", done_device=" << (done.is_cuda() ? "CUDA" : "CPU") << std::endl;
-
-            // Créer et stocker la transition
-            Transition transition{ heatmap, agent_state, action_tensor, log_prob, reward, value, done };
-            buffer.store(transition);
-
-            std::cout << "Stored transition " << i << ": action=" << action
-                << ", reward=" << reward.item<float>()
-                << ", value=" << value.item<float>()
-                << ", done=" << done.item<float>()
-                << ", device=" << (reward.is_cuda() ? "CUDA" : "CPU") << std::endl;
-
-            torch::cuda::synchronize();
-        }
-
-        // Tester get()
-        std::cout << "\n=== Testing get() ===\n";
-        auto [heatmaps, agent_states, actions, log_probs, rewards, values, dones] = buffer.get();
-        std::cout << "Heatmaps shape: " << heatmaps.sizes() << ", device: " << (heatmaps.is_cuda() ? "CUDA" : "CPU") << std::endl;
-        std::cout << "Agent states shape: " << agent_states.sizes() << std::endl;
-        std::cout << "Actions shape: " << actions.sizes() << std::endl;
-        std::cout << "Rewards: " << rewards << std::endl;
-        torch::cuda::synchronize();
-
-        // Tester computeReturns
-        std::cout << "\n=== Testing computeReturns ===\n";
-        float last_value = 0.6f;
-        torch::Tensor returns = buffer.computeReturns(last_value, 0.99f);
-        std::cout << "Returns shape: " << returns.sizes() << ", values: " << returns << std::endl;
-        torch::cuda::synchronize();
-
-        // Tester computeAdvantages
-        std::cout << "\n=== Testing computeAdvantages ===\n";
-        torch::Tensor advantages = buffer.computeAdvantages(last_value, 0.99f, 0.95f);
-        std::cout << "Advantages shape: " << advantages.sizes() << ", values: " << advantages << std::endl;
-        torch::cuda::synchronize();
-
-        // Tester sampleMiniBatch
-        std::cout << "\n=== Testing sampleMiniBatch ===\n";
-        auto [batch_heatmaps, batch_states, batch_actions, batch_log_probs, batch_rewards, batch_values, batch_dones] =
-            buffer.sampleMiniBatch(5, rng);
-        std::cout << "Mini-batch heatmaps shape: " << batch_heatmaps.sizes() << std::endl;
-        std::cout << "Mini-batch actions: " << batch_actions << std::endl;
-        std::cout << "Mini-batch rewards: " << batch_rewards << std::endl;
-        torch::cuda::synchronize();
-
-        // Vider le buffer
-        buffer.clear();
-        std::cout << "\nBuffer cleared. Size: " << std::get<0>(buffer.get()).size(0) << std::endl;
-
-
-        // Créer TradingAgentNet
         std::cout << "Création TradingAgentNet..." << std::endl;
         TradingAgentNet network;
 
-        // Tester le constructeur de TradingEnvironment
         std::cout << "Test le constructeur de TradingEnvironment" << std::endl;
-        TradingEnvironment env(&ob, &network, 10, 10, 1);
+        TradingEnvironment env(&ob, &network, 1, 10, 10);
 
-        // Vérifier l'initialisation
-        std::cout << "Heatmap tensor shape: " << env.getHeatmapTensor().sizes() << ", device: " << (env.getHeatmapTensor().is_cuda() ? "CUDA" : "CPU") << std::endl;
-        std::cout << "Agent state: " << env.getAgentState().toVector() << std::endl;
-        std::cout << "MemoryBuffer size: " << std::get<0>(env.getMemoryBuffer().get()).size(0) << std::endl;
+        std::cout << "=== Simulation de 20 itérations ===" << std::endl;
+        for (int i = 0; i < 20; ++i) {
+            std::cout << "Itération " << i << " (t=" << env.current_decision_index << "):" << std::endl;
 
-        std::cout << "Test sampleFromPolicy, handleAction, updateRewardWindows" << std::endl;
-  
-        for (int i = 0; i < 11; ++i) { // 11 itérations pour compléter une RewardWindow
+            // Obtenir best_bid et best_ask
+            float best_bid = ob.getCurrentBestBid();
+            float best_ask = ob.getCurrentBestAsk();
+            std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
+
+            // Obtenir état et prédictions
             torch::Tensor state_tensor = env.getAgentState().toTensor();
             auto [policy, value] = network.forward(env.getHeatmapTensor(), state_tensor);
-            std::cout << "Policy: " << policy << ", device: " << (policy.is_cuda() ? "CUDA" : "CPU") << std::endl;
+            std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
+            std::cout << "  Value: " << value.item<float>() << std::endl;
+
+            // Échantillonner une action
             Action action = env.sampleFromPolicy(policy, rng);
-            std::cout << "Action sampled: " << static_cast<int>(action) << std::endl;
+            std::cout << "  Action sampled: " << static_cast<int>(action);
+            switch (action) {
+            case Action::BUY_MARKET: std::cout << " (BUY_MARKET)"; break;
+            case Action::SELL_MARKET: std::cout << " (SELL_MARKET)"; break;
+            case Action::WAIT: std::cout << " (WAIT)"; break;
+            }
+            std::cout << std::endl;
+
+            // Traiter l'action
             env.handleAction(action, policy, value);
+
+            // Mettre à jour les fenêtres de récompenses
             env.updateRewardWindows();
-            env.current_decision_index++; // Incrémenter l'index
+
+            // Incrémenter l'index
+            env.current_decision_index++;
+            std::cout << "  MemoryBuffer size: " << std::get<0>(env.getMemoryBuffer().get()).size(0) << std::endl;
+            std::cout << "-----------------------------" << std::endl;
         }
+
+        // Afficher les transitions stockées
+        std::cout << "=== Transitions enregistrées ===" << std::endl;
+        const auto& transitions = env.getMemoryBuffer().get();
+        int64_t num_transitions = std::get<0>(transitions).size(0);
+        for (int64_t i = 0; i < num_transitions; ++i) {
+            std::cout << "Transition #" << i << std::endl;
+            torch::Tensor action = std::get<2>(transitions).index({ i });
+            std::cout << "  Action       : " << action.item<int64_t>() << " (";
+            switch (action.item<int64_t>()) {
+            case 0: std::cout << "BUY_MARKET"; break;
+            case 1: std::cout << "SELL_MARKET"; break;
+            case 2: std::cout << "WAIT"; break;
+            }
+            std::cout << ")" << std::endl;
+            std::cout << "  LogProb      : " << std::get<3>(transitions).index({ i }).item<float>() << std::endl;
+            std::cout << "  Value        : " << std::get<5>(transitions).index({ i }).item<float>() << std::endl;
+            std::cout << "  Reward       : " << std::get<4>(transitions).index({ i }).item<float>() << std::endl;
+            std::cout << "  Done         : " << std::get<6>(transitions).index({ i }).item<float>() << std::endl;
+            std::cout << "-----------------------------" << std::endl;
+        }
+
+        // Afficher les trades
+        std::cout << "=== Trade history ===" << std::endl;
+        env.printTradeLogs();
 
         torch::cuda::synchronize();
 
