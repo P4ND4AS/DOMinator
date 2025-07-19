@@ -79,7 +79,9 @@ public:
     MemoryBuffer getMemoryBuffer() const { return memoryBuffer; }
 
     void printTradeLogs() const;
-    void train(std::mt19937& rng);
+    void collectTransitions(std::mt19937& rng);
+    void optimize(int num_epochs, int batch_size, float clip_param = 0.2f,
+        float value_loss_coeff = 0.5f, float entropy_coef = 0.01f);
 
     int current_decision_index = 0;
 private:
@@ -88,6 +90,7 @@ private:
     torch::Tensor heatmap_data_tensor;
     TradingAgentNet* network;
     MemoryBuffer memoryBuffer;
+    torch::optim::Adam* optimizer;
 
     AgentState agent_state;
     std::vector<RewardWindow> reward_windows;
@@ -98,6 +101,6 @@ private:
     
     int decision_per_second;
     int traj_duration;
-    int marketUpdatePerDecision;
+    int marketUpdatePerDecision = static_cast<int>(1 / (decision_per_second * timestep * 0.000001f));
     bool isEpisodeDone = false;
 };

@@ -45,7 +45,7 @@ struct RewardWindow {
     }
 
     torch::Tensor computeWeightedReward(float alpha = 0.2f) const {
-        std::cout << "Computing reward, latent_pnls: " << latent_pnls << std::endl;
+        
         if (agent_state_at_action == 0 && action == Action::WAIT) {
             std::cout << "WAIT with no position, reward: -0.01" << std::endl;
             return torch::tensor({ -0.01f }, torch::kFloat).to(torch::kCUDA);
@@ -65,11 +65,6 @@ struct RewardWindow {
         auto weighted_reward = total_weight.item<float>() > 0.0f
             ? (reward / total_weight).unsqueeze(0)
             : torch::tensor({ 0.0f }, torch::kFloat).to(torch::kCUDA);
-        std::cout << "Indices: " << indices << std::endl;
-        std::cout << "Weights: " << weights << std::endl;
-        std::cout << "Total weight: " << total_weight << std::endl;
-        std::cout << "Raw reward sum: " << reward << std::endl;
-        std::cout << "Weighted reward: " << weighted_reward << std::endl;
         return weighted_reward;
     }
 
@@ -93,13 +88,9 @@ struct RewardWindow {
         else if (action == Action::SELL_MARKET) {
             if (agent_state_at_action >= 0) { pnl = entry_price - best_ask; }
         }
-
-        std::cout << "Adding PnL: " << pnl << ", agent_state: " << agent_state_at_action
-            << ", action: " << static_cast<int>(action)
-            << ", latent_pnls size: " << latent_pnls.size(0) << std::endl;
+   
         auto new_pnl = torch::tensor({ pnl }, torch::kFloat).to(torch::kCUDA);
         latent_pnls = torch::cat({ latent_pnls, new_pnl });
-        std::cout << "latent_pnls after: " << latent_pnls << std::endl;
     }
 };
 

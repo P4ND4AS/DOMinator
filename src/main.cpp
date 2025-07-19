@@ -147,71 +147,14 @@ int main() {
         std::cout << "Création TradingAgentNet..." << std::endl;
         TradingAgentNet network;
 
-        std::cout << "Test le constructeur de TradingEnvironment" << std::endl;
+        std::cout << "Creating TradingEnvironment..." << std::endl;
         TradingEnvironment env(&ob, &network, 1, 10, 10);
 
-        std::cout << "=== Simulation de 20 itérations ===" << std::endl;
-        for (int i = 0; i < 20; ++i) {
-            std::cout << "Itération " << i << " (t=" << env.current_decision_index << "):" << std::endl;
+        // Tester collectTransitions
+        std::cout << "=== Testing collectTransitions ===" << std::endl;
+        env.collectTransitions(rng);
 
-            // Obtenir best_bid et best_ask
-            float best_bid = ob.getCurrentBestBid();
-            float best_ask = ob.getCurrentBestAsk();
-            std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
-
-            // Obtenir état et prédictions
-            torch::Tensor state_tensor = env.getAgentState().toTensor();
-            auto [policy, value] = network.forward(env.getHeatmapTensor(), state_tensor);
-            std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
-            std::cout << "  Value: " << value.item<float>() << std::endl;
-
-            // Échantillonner une action
-            Action action = env.sampleFromPolicy(policy, rng);
-            std::cout << "  Action sampled: " << static_cast<int>(action);
-            switch (action) {
-            case Action::BUY_MARKET: std::cout << " (BUY_MARKET)"; break;
-            case Action::SELL_MARKET: std::cout << " (SELL_MARKET)"; break;
-            case Action::WAIT: std::cout << " (WAIT)"; break;
-            }
-            std::cout << std::endl;
-
-            // Traiter l'action
-            env.handleAction(action, policy, value);
-
-            // Mettre à jour les fenêtres de récompenses
-            env.updateRewardWindows();
-
-            // Incrémenter l'index
-            env.current_decision_index++;
-            std::cout << "  MemoryBuffer size: " << std::get<0>(env.getMemoryBuffer().get()).size(0) << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-        }
-
-        // Afficher les transitions stockées
-        std::cout << "=== Transitions enregistrées ===" << std::endl;
-        const auto& transitions = env.getMemoryBuffer().get();
-        int64_t num_transitions = std::get<0>(transitions).size(0);
-        for (int64_t i = 0; i < num_transitions; ++i) {
-            std::cout << "Transition #" << i << std::endl;
-            torch::Tensor action = std::get<2>(transitions).index({ i });
-            std::cout << "  Action       : " << action.item<int64_t>() << " (";
-            switch (action.item<int64_t>()) {
-            case 0: std::cout << "BUY_MARKET"; break;
-            case 1: std::cout << "SELL_MARKET"; break;
-            case 2: std::cout << "WAIT"; break;
-            }
-            std::cout << ")" << std::endl;
-            std::cout << "  LogProb      : " << std::get<3>(transitions).index({ i }).item<float>() << std::endl;
-            std::cout << "  Value        : " << std::get<5>(transitions).index({ i }).item<float>() << std::endl;
-            std::cout << "  Reward       : " << std::get<4>(transitions).index({ i }).item<float>() << std::endl;
-            std::cout << "  Done         : " << std::get<6>(transitions).index({ i }).item<float>() << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-        }
-
-        // Afficher les trades
-        std::cout << "=== Trade history ===" << std::endl;
-        env.printTradeLogs();
-
+        std::cout << "=== Test completed ===" << std::endl;
         torch::cuda::synchronize();
 
     } catch (const std::exception& e) {

@@ -179,10 +179,12 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
     memoryBuffer(traj_duration * decision_per_second), heatmap(0, 800)
 
 {
-    Eigen::MatrixXf heatmap_data = heatmap.data;
 
-    heatmap_data_tensor = torch::from_blob(heatmap_data.data(), { 1, 1, 401, 800 }, 
+    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 }, 
         torch::kFloat).to(torch::kCUDA);
+
+    optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(3e-4));
+ 
 }
 
 
@@ -213,9 +215,9 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
 
 
     if (action == Action::BUY_MARKET) {
-        std::cout << "BUY" << "\n";
+        //std::cout << "BUY" << "\n";
         if (agent_state.position == 0) {
-            std::cout << "long opened" << "\n";
+            //std::cout << "long opened" << "\n";
             agent_state.position = 1;
             entry_price = best_ask;
 
@@ -232,14 +234,14 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
             order.side = Side::ASK;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            std::cout << "position agent: " << agent_state.position << "\n";
+            //std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == -1) {
             float exit_price = best_ask;
             float pnl = entry_price - exit_price;
 
             if (open_trade.has_value()) {
-                std::cout << "short closed" << "\n";
+                //std::cout << "short closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -256,9 +258,9 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
         }
     }
     else if (action == Action::SELL_MARKET) {
-        std::cout << "SELL" << "\n";
+        //std::cout << "SELL" << "\n";
         if (agent_state.position == 0) {
-            std::cout << "short opened" << "\n";
+            //std::cout << "short opened" << "\n";
             agent_state.position = -1;
             entry_price = best_bid;
 
@@ -275,14 +277,14 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
             order.side = Side::BID;
             order.size = 1;
             orderBook->processMarketOrder(order);
-            std::cout << "position agent: " << agent_state.position << "\n";
+            //std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == 1) {
             float exit_price = best_bid;
             float pnl = exit_price - entry_price;
 
             if (open_trade.has_value()) {
-                std::cout << "long closed" << "\n";
+                //std::cout << "long closed" << "\n";
                 open_trade->timestep_exit = current_timestep;
                 open_trade->price_exit = exit_price;
                 open_trade->pnl = pnl;
@@ -367,60 +369,72 @@ void TradingEnvironment::printTradeLogs() const {
     }
 }
 
-/*
-void TradingEnvironment::train(std::mt19937& rng) {
-    Eigen::MatrixXf dummy_heatmap = Eigen::MatrixXf::Zero(401, 128);
-    for (int traj = 0; traj < N_trajectories; ++traj) {
-        std::cout << "Trajectory #" << traj << "\n\n";
+void TradingEnvironment::collectTransitions(std::mt19937& rng) {
+    std::cout << "=== Collecting transitions " << "\n";
+    for (int i = 0; i < traj_duration * decision_per_second; ++i) {
+        // Update order book
+        orderBook->update(marketUpdatePerDecision, rng);
+        float best_bid = orderBook->getCurrentBestBid();
+        float best_ask = orderBook->getCurrentBestAsk();
+        std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
+
+        // Update heatmap and agent_state
+        heatmap.updateData(orderBook->getCurrentBook());
+        heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 },
+            torch::kFloat).to(torch::kCUDA);
         
-        std::cout << "start updating market" << "\n";
-        for (int iter = 0; iter < 128; ++iter) {
-            orderBook->update(20000, rng);
-            heatmap.updateData(orderBook->getCurrentBook());
+        // Policy and value
+        auto [policy, value] = network->forward(heatmap_data_tensor, agent_state.toTensor());
+        std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
+        std::cout << "  Value: " << value.item<float>() << std::endl;
+
+        // Sample action
+        Action action = sampleFromPolicy(policy, rng);
+        std::cout << "  Action sampled: " << static_cast<int>(action);
+        switch (action) {
+        case Action::BUY_MARKET: std::cout << " (BUY_MARKET)"; break;
+        case Action::SELL_MARKET: std::cout << " (SELL_MARKET)"; break;
+        case Action::WAIT: std::cout << " (WAIT)"; break;
         }
-        std::cout << "OrderBook sped up a few seconds..." << "\n";
+        std::cout << std::endl;
 
-        std::cout << "marketUpdatePerDecision : " << marketUpdatePerDecision << "\n";
+        handleAction(action, policy, value);
+        updateRewardWindows();
 
-        for (int iter = 0; iter < traj_duration * decision_per_second; ++iter) {
-            std::cout << "Iteration #" << iter << "\n\n";
-            orderBook->update(20000, rng);
-            std::cout << "BestBid : " << orderBook->getCurrentBestBid() << " & BestAsk : " << orderBook->getCurrentBestAsk() << "\n";
-            heatmap.updateData(orderBook->getCurrentBook());
-            std::cout << "Matrice updated" << "\n";
-            auto [policy, value] = network->forward(heatmap.data, agent_state.toVector());
-           
-            std::cout << "Policy : " << policy << " & value : " << value << "\n";
+        current_decision_index++;
+        std::cout << "  MemoryBuffer size: " << std::get<0>(memoryBuffer.get()).size(0) << std::endl;
+        std::cout << "-----------------------------" << std::endl;
 
-            Action action = sampleFromPolicy(policy, rng);
-            std::cout << "Action : " << action << "\n";
-            handleAction(action, policy, value);
-            std::cout << "Action handled" << "\n";
-            updateRewardWindows();
-            std::cout << "\n\n";
-
-            ++current_decision_index;
-
+        // Check if trajectory is done
+        if (current_decision_index >= traj_duration * decision_per_second) {
+            isEpisodeDone = true;
+            break;
         }
-        printTradeLogs();
-
-        auto [_, lastValue] = network->forward(heatmap.data, agent_state.toVector());
-        std::vector<float> advantages = memoryBuffer.computeAdvantages(lastValue);
-        std::vector<float> returns = memoryBuffer.computeReturns(lastValue);
-
-        std::cout << "=== Transitions enregistrées ===" << std::endl;
-        for (size_t i = 0; i < memoryBuffer.get().size(); ++i) {
-            const auto& t = memoryBuffer.get()[i];
-            std::cout << "Transition #" << i << std::endl;
-            std::cout << "  Action       : " << t.action << std::endl;
-            std::cout << "  LogProb      : " << t.log_prob << std::endl;
-            std::cout << "  Value        : " << t.value << std::endl;
-            std::cout << "  Reward       : " << t.reward << std::endl;
-            std::cout << "  Done         : " << t.done << std::endl;
-            std::cout << "  Advantage    : " << advantages[i] << std::endl;
-            std::cout << "  Return       : " << returns[i] << std::endl;
-            std::cout << "-----------------------------" << std::endl;
-        }
-            memoryBuffer.clear();
     }
-}*/
+
+    // Print transitions
+    std::cout << "=== Transitions recorded ===" << std::endl;
+    const auto& transitions = memoryBuffer.get();
+    int64_t num_transitions = std::get<0>(transitions).size(0);
+    for (int64_t i = 0; i < num_transitions; ++i) {
+        std::cout << "Transition #" << i << std::endl;
+        torch::Tensor action = std::get<2>(transitions).index({ i });
+        std::cout << "  Action       : " << action.item<int64_t>() << " (";
+        switch (action.item<int64_t>()) {
+        case 0: std::cout << "BUY_MARKET"; break;
+        case 1: std::cout << "SELL_MARKET"; break;
+        case 2: std::cout << "WAIT"; break;
+        }
+        std::cout << ")" << std::endl;
+        std::cout << "  LogProb      : " << std::get<3>(transitions).index({ i }).item<float>() << std::endl;
+        std::cout << "  Value        : " << std::get<5>(transitions).index({ i }).item<float>() << std::endl;
+        std::cout << "  Reward       : " << std::get<4>(transitions).index({ i }).item<float>() << std::endl;
+        std::cout << "  Done         : " << std::get<6>(transitions).index({ i }).item<float>() << std::endl;
+        std::cout << "-----------------------------" << std::endl;
+    }
+
+    // Afficher l'historique des trades
+    std::cout << "=== Trade history ===" << std::endl;
+    printTradeLogs();
+
+}
