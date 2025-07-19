@@ -71,6 +71,7 @@ public:
 
     ~TradingEnvironment();
 
+    void reset();
     Action sampleFromPolicy(const torch::Tensor& policy, std::mt19937& rng);
 
     void handleAction(Action action, const torch::Tensor& log_prob, const torch::Tensor& value);
@@ -86,6 +87,8 @@ public:
     void collectTransitions(std::mt19937& rng);
     void optimize(std::mt19937& rng, int num_epochs, int batch_size, float clip_param = 0.2f,
         float value_loss_coeff = 0.5f, float entropy_coef = 0.01f);
+    void train(int num_trajectories, int num_epochs, int batch_size,
+        std::mt19937& rng, float clip_param = 0.2f, float value_loss_coef = 0.5f, float entropy_coef = 0.01f);
 
     int current_decision_index = 0;
 private:

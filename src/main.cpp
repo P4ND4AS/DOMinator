@@ -150,13 +150,8 @@ int main() {
         std::cout << "Creating TradingEnvironment..." << std::endl;
         TradingEnvironment env(&ob, &network, 1, 10, 10);
 
-        // Tester collectTransitions
-        std::cout << "=== Testing collectTransitions ===" << std::endl;
-        env.collectTransitions(rng);
-        env.optimize(rng, 5, 32);
-        env.computeMetrics();
+        env.train(5, 5, 32, rng);
 
-        std::cout << "=== Test completed ===" << std::endl;
         torch::cuda::synchronize();
 
     } catch (const std::exception& e) {

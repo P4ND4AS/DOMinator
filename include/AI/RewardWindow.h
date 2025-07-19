@@ -47,15 +47,15 @@ struct RewardWindow {
     torch::Tensor computeWeightedReward(float alpha = 0.2f) const {
         
         if (agent_state_at_action == 0 && action == Action::WAIT) {
-            std::cout << "WAIT with no position, reward: -0.01" << std::endl;
+            //std::cout << "WAIT with no position, reward: -0.01" << std::endl;
             return torch::tensor({ -0.01f }, torch::kFloat).to(torch::kCUDA);
         }
         if (isInvalid) {
-            std::cout << "Invalid action, reward: -0.01" << std::endl;
+            //std::cout << "Invalid action, reward: -0.01" << std::endl;
             return torch::tensor({ -0.01f }, torch::kFloat).to(torch::kCUDA);
         }
         if (latent_pnls.size(0) == 0) {
-            std::cout << "Empty latent_pnls, reward: 0" << std::endl;
+            //std::cout << "Empty latent_pnls, reward: 0" << std::endl;
             return torch::tensor({ 0.0f }, torch::kFloat).to(torch::kCUDA);
         }
         auto indices = torch::arange(latent_pnls.size(0) - 1, -1, -1, torch::kFloat).to(torch::kCUDA);
@@ -70,7 +70,7 @@ struct RewardWindow {
 
     void addPnL(float best_bid, float best_ask) {
         if (latent_pnls.size(0) >= 10) {
-            std::cout << "RewardWindow full, skipping addPnL" << std::endl;
+            //std::cout << "RewardWindow full, skipping addPnL" << std::endl;
             return;
         }
         float pnl = 0.0f;

@@ -189,6 +189,17 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
 
 TradingEnvironment::~TradingEnvironment() { delete optimizer; }
 
+void TradingEnvironment::reset() {
+    current_decision_index = 0;
+    isEpisodeDone = false;
+    reward_windows.clear();
+    entry_price = 0.0f;
+    agent_state.position = 0;
+    open_trade.reset();
+    trade_logs.clear(); 
+    memoryBuffer.clear(); 
+}
+
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
 
@@ -210,6 +221,9 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
     float best_bid = orderBook->getCurrentBestBid();
     float best_ask = orderBook->getCurrentBestAsk();
     int current_position = agent_state.position;
+
+    float commission = 4.58f;
+    float leverage = 20.0f;
 
     torch::Tensor log_prob = torch::log(policy[0][static_cast<int64_t>(action)])
         .unsqueeze(0).to(torch::kCUDA);
@@ -240,6 +254,7 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
         else if (agent_state.position == -1) {
             float exit_price = best_ask;
             float pnl = entry_price - exit_price;
+            pnl = pnl * leverage - commission;
 
             if (open_trade.has_value()) {
                 //std::cout << "short closed" << "\n";
@@ -283,6 +298,7 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
         else if (agent_state.position == 1) {
             float exit_price = best_bid;
             float pnl = exit_price - entry_price;
+            pnl = pnl * leverage - commission;
 
             if (open_trade.has_value()) {
                 //std::cout << "long closed" << "\n";
@@ -363,7 +379,7 @@ void TradingEnvironment::printTradeLogs() const {
             << " price=" << trade.price_entry
             << " | Exit t=" << trade.timestep_exit
             << " price=" << trade.price_exit
-            << " | PnL=" << trade.pnl
+            << " | PnL=" << trade.pnl <<" $"
             << " | EntryAction=" << trade.entry_action
             << " ExitAction=" << trade.exit_action
             << "\n";
@@ -377,7 +393,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         orderBook->update(marketUpdatePerDecision, rng);
         float best_bid = orderBook->getCurrentBestBid();
         float best_ask = orderBook->getCurrentBestAsk();
-        std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
+        //std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
 
         // Update heatmap and agent_state
         heatmap.updateData(orderBook->getCurrentBook());
@@ -386,25 +402,25 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
         auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor);
-        std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
-        std::cout << "  Value: " << value.item<float>() << std::endl;
+        //std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
+        //std::cout << "  Value: " << value.item<float>() << std::endl;
 
         // Sample action
         Action action = sampleFromPolicy(policy, rng);
-        std::cout << "  Action sampled: " << static_cast<int>(action);
-        switch (action) {
-        case Action::BUY_MARKET: std::cout << " (BUY_MARKET)"; break;
-        case Action::SELL_MARKET: std::cout << " (SELL_MARKET)"; break;
-        case Action::WAIT: std::cout << " (WAIT)"; break;
-        }
-        std::cout << std::endl;
+        //std::cout << "  Action sampled: " << static_cast<int>(action);
+        //switch (action) {
+        //case Action::BUY_MARKET: std::cout << " (BUY_MARKET)"; break;
+        //case Action::SELL_MARKET: std::cout << " (SELL_MARKET)"; break;
+        //case Action::WAIT: std::cout << " (WAIT)"; break;
+        //}
+        //std::cout << std::endl;
 
         handleAction(action, policy, value);
         updateRewardWindows();
 
         current_decision_index++;
-        std::cout << "  MemoryBuffer size: " << std::get<0>(memoryBuffer.get()).size(0) << std::endl;
-        std::cout << "-----------------------------" << std::endl;
+        //std::cout << "  MemoryBuffer size: " << std::get<0>(memoryBuffer.get()).size(0) << std::endl;
+        //std::cout << "-----------------------------" << std::endl;
 
         // Check if trajectory is done
         if (current_decision_index >= traj_duration * decision_per_second) {
@@ -414,7 +430,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     }
 
     // Print transitions
-    std::cout << "=== Transitions recorded ===" << std::endl;
+    /*std::cout << "=== Transitions recorded ===" << std::endl;
     const auto& transitions = memoryBuffer.get();
     int64_t num_transitions = std::get<0>(transitions).size(0);
     for (int64_t i = 0; i < num_transitions; ++i) {
@@ -432,11 +448,11 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         std::cout << "  Reward       : " << std::get<4>(transitions).index({ i }).item<float>() << std::endl;
         std::cout << "  Done         : " << std::get<6>(transitions).index({ i }).item<float>() << std::endl;
         std::cout << "-----------------------------" << std::endl;
-    }
+    }*/
 
     // Afficher l'historique des trades
-    std::cout << "=== Trade history ===" << std::endl;
-    printTradeLogs();
+    //std::cout << "=== Trade history ===" << std::endl;
+    //printTradeLogs();
 
 }
 
@@ -478,8 +494,6 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
             auto batch_advantages = advantages.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
             auto batch_returns = returns.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
 
-            std::cout << "batch_states: " << batch_states.sizes() << std::endl;
-            std::cout << "batch_agent_states: " << batch_agent_states.sizes() << std::endl;
             // Compute new policy and value
             auto [policy, value] = network->forward(batch_states, batch_agent_states);
             auto log_probs = torch::log(policy.gather(1, batch_actions.unsqueeze(1))).squeeze(1);
@@ -505,18 +519,30 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
             optimizer->step();
 
             // Logs
-            std::cout << "  Batch " << batch_idx << "/" << num_batches
+            /*std::cout << "  Batch " << batch_idx << "/" << num_batches
                 << ": Policy loss = " << policy_loss.item<float>()
                 << ", Value loss = " << value_loss.item<float>()
                 << ", Entropy = " << entropy.item<float>()
-                << ", Total loss = " << loss.item<float>() << std::endl;
+                << ", Total loss = " << loss.item<float>() << std::endl;*/
         }
     }
-
-    // Vider le buffer
-    memoryBuffer.clear();
-    std::cout << "Optimization complete, MemoryBuffer cleared" << std::endl;
 }
+
+
+void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_size, std::mt19937& rng, float clip_param, float value_loss_coef, float entropy_coef) {
+    std::cout << "=== Training for " << num_trajectories << " trajectories ===" << std::endl;
+    for (int episode = 0; episode < num_trajectories; ++episode) {
+        std::cout << "=== Episode " << episode << " ===" << std::endl;
+        reset();
+        collectTransitions(rng);
+        optimize(rng, num_epochs, batch_size, clip_param, value_loss_coef, entropy_coef);
+        computeMetrics();
+        std::cout << "Episode " << episode << " completed." << std::endl;
+    }
+    std::cout << "=== Training completed ===" << std::endl;
+    torch::cuda::synchronize();
+}
+
 
 
 void TradingEnvironment::computeMetrics() {
@@ -547,7 +573,7 @@ void TradingEnvironment::computeMetrics() {
     float sharpe = variance > 0.0f ? mean_pnl / (std::sqrt(variance) + 1e-8) : 0.0f;
 
     std::cout << "Number of trades: " << trade_logs.size() << std::endl;
-    std::cout << "Total PnL: " << total_pnl << std::endl;
-    std::cout << "Max Drawdown: " << max_drawdown << std::endl;
+    std::cout << "Total PnL: " << total_pnl << " $" << std::endl;
+    std::cout << "Max Drawdown: " << max_drawdown << " $" << std::endl;
     std::cout << "Sharpe Ratio: " << sharpe << std::endl;
 }
