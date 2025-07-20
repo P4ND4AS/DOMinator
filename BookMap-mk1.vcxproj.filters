@@ -43,6 +43,9 @@
     <Filter Include="Fichiers sources\AI">
       <UniqueIdentifier>{69b2d4f7-7c9c-4cbc-b875-8f1193701d76}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scipts">
+      <UniqueIdentifier>{57b2b3d3-cf7c-4994-9d1b-706430a8b1f7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glad.c">
@@ -234,6 +237,9 @@
     </None>
     <None Include="src\AI\configAI.json">
       <Filter>Fichiers sources\AI</Filter>
+    </None>
+    <None Include="scripts\metrics.py">
+      <Filter>scipts</Filter>
     </None>
   </ItemGroup>
 </Project>

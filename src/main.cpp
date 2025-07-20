@@ -148,11 +148,16 @@ int main() {
         TradingAgentNet network;
 
         std::cout << "Creating TradingEnvironment..." << std::endl;
-        TradingEnvironment env(&ob, &network, 1, 10, 10);
+        TradingEnvironment env(&ob, &network, rng, 1, 10, 10);
 
-        env.train(5, 5, 32, rng);
+        auto start = std::chrono::high_resolution_clock::now();
+        env.train(5, 5, 32);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "Training took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
         torch::cuda::synchronize();
+
+        std::system("python C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/scripts/metrics.py");
 
     } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;

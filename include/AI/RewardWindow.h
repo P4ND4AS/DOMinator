@@ -48,11 +48,11 @@ struct RewardWindow {
         
         if (agent_state_at_action == 0 && action == Action::WAIT) {
             //std::cout << "WAIT with no position, reward: -0.01" << std::endl;
-            return torch::tensor({ -0.01f }, torch::kFloat).to(torch::kCUDA);
+            return torch::tensor({ -2.0f }, torch::kFloat).to(torch::kCUDA);
         }
         if (isInvalid) {
             //std::cout << "Invalid action, reward: -0.01" << std::endl;
-            return torch::tensor({ -0.01f }, torch::kFloat).to(torch::kCUDA);
+            return torch::tensor({ -10.0f }, torch::kFloat).to(torch::kCUDA);
         }
         if (latent_pnls.size(0) == 0) {
             //std::cout << "Empty latent_pnls, reward: 0" << std::endl;

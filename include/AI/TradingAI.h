@@ -5,8 +5,8 @@
 #include "RewardWindow.h"
 #include "NeuralNetwork.h"
 #include <random>
-
-
+#include <fstream>
+#include <filesystem>
 
 struct Transition {
     torch::Tensor heatmap;     
@@ -66,7 +66,8 @@ struct TradeLog {
 class TradingEnvironment {
 public:
 
-    TradingEnvironment(OrderBook* book, TradingAgentNet* network, int N_trajectories = 1,
+    TradingEnvironment(OrderBook* book, TradingAgentNet* network, 
+        std::mt19937 rng, int N_trajectories = 1,
         int traj_duration = 10, int decision_per_second = 10);
 
     ~TradingEnvironment();
@@ -82,13 +83,12 @@ public:
     MemoryBuffer getMemoryBuffer() const { return memoryBuffer; }
 
     void printTradeLogs() const;
-    void computeMetrics();
+    void computeMetrics(int episode);
 
     void collectTransitions(std::mt19937& rng);
-    void optimize(std::mt19937& rng, int num_epochs, int batch_size, float clip_param = 0.2f,
-        float value_loss_coeff = 0.5f, float entropy_coef = 0.01f);
-    void train(int num_trajectories, int num_epochs, int batch_size,
-        std::mt19937& rng, float clip_param = 0.2f, float value_loss_coef = 0.5f, float entropy_coef = 0.01f);
+    void optimize(std::mt19937& rng, int num_epochs, int batch_size, float clip_param,
+        float value_loss_coeff, float entropy_coef);
+    void train(int num_trajectories, int num_epochs, int batch_size, float clip_param = 0.2f, float value_loss_coef = 0.25f, float entropy_coef = 0.02f);
 
     int current_decision_index = 0;
 private:
@@ -98,6 +98,8 @@ private:
     TradingAgentNet* network;
     MemoryBuffer memoryBuffer;
     torch::optim::Adam* optimizer;
+
+    std::mt19937 rng;
 
     AgentState agent_state;
     std::vector<RewardWindow> reward_windows;

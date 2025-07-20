@@ -173,18 +173,23 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
 
 
-TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network, int N_trajectories,
+TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network, 
+    std::mt19937 rng, int N_trajectories,
     int traj_duration, int decision_per_second) : orderBook(book), network(network), 
     traj_duration(traj_duration), decision_per_second(decision_per_second), 
-    memoryBuffer(traj_duration * decision_per_second), heatmap(0, 800)
+    memoryBuffer(traj_duration * decision_per_second), heatmap(0, 800), rng(rng)
 
 {
-
-    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 }, 
-        torch::kFloat).to(torch::kCUDA);
-
-    optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(3e-4));
+    optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(1e-4));
  
+    std::cout << "filling up the heatmap matrix..." << "\n";
+    for (int i = 0; i < 200; ++i) {
+        orderBook->update(marketUpdatePerDecision, rng);
+        heatmap.updateData(orderBook->getCurrentBook());
+
+    }
+    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 },
+        torch::kFloat).to(torch::kCUDA);
 }
 
 TradingEnvironment::~TradingEnvironment() { delete optimizer; }
@@ -198,6 +203,8 @@ void TradingEnvironment::reset() {
     open_trade.reset();
     trade_logs.clear(); 
     memoryBuffer.clear(); 
+    std::cout << "After reset: trade_logs.size() = " << trade_logs.size() <<
+        ", memoryBuffer.size() = " << std::get<0>(memoryBuffer.get()).size(0) << std::endl;
 }
 
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
@@ -474,7 +481,7 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
     torch::Tensor returns = memoryBuffer.computeReturns(last_value, gamma);
 
     // Optimization loop
-    for (int epoch = 0; epoch < num_epochs; ++epoch) {
+    for (int epoch = 1; epoch < num_epochs + 1; ++epoch) {
         std::cout << "Epoch " << epoch << "/" << num_epochs << "\n";
 
         int64_t num_batches = (num_transitions + batch_size - 1) / batch_size;
@@ -529,14 +536,21 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
 }
 
 
-void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_size, std::mt19937& rng, float clip_param, float value_loss_coef, float entropy_coef) {
+void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_size, float clip_param, float value_loss_coef, float entropy_coef) {
+    std::filesystem::remove("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics.csv"); // Supprime le fichier s'il existe
+    std::ofstream metrics_file("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics.csv", std::ios::out);
+    if (metrics_file.is_open()) {
+        metrics_file << "Episode,Total_PnL,Max_Drawdown,Sharpe_Ratio,Num_Trades\n";
+        metrics_file.close();
+    }
+
     std::cout << "=== Training for " << num_trajectories << " trajectories ===" << std::endl;
-    for (int episode = 0; episode < num_trajectories; ++episode) {
+    for (int episode = 1; episode < num_trajectories + 1; ++episode) {
         std::cout << "=== Episode " << episode << " ===" << std::endl;
         reset();
         collectTransitions(rng);
         optimize(rng, num_epochs, batch_size, clip_param, value_loss_coef, entropy_coef);
-        computeMetrics();
+        computeMetrics(episode);
         std::cout << "Episode " << episode << " completed." << std::endl;
     }
     std::cout << "=== Training completed ===" << std::endl;
@@ -545,7 +559,7 @@ void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_s
 
 
 
-void TradingEnvironment::computeMetrics() {
+void TradingEnvironment::computeMetrics(int episode) {
     std::cout << "=== Trading Metrics ===" << std::endl;
     if (trade_logs.empty()) {
         std::cout << "No trades recorded" << std::endl;
@@ -576,4 +590,14 @@ void TradingEnvironment::computeMetrics() {
     std::cout << "Total PnL: " << total_pnl << " $" << std::endl;
     std::cout << "Max Drawdown: " << max_drawdown << " $" << std::endl;
     std::cout << "Sharpe Ratio: " << sharpe << std::endl;
+
+    std::ofstream metrics_file("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics.csv", std::ios::app);
+    if (metrics_file.is_open()) {
+        metrics_file << std::fixed << std::setprecision(2);
+        metrics_file << episode << "," << total_pnl << "," << max_drawdown << "," << sharpe << "," << trade_logs.size() << "\n";
+        metrics_file.close();
+    }
+    else {
+        std::cerr << "Error: Could not append to metrics.csv" << std::endl;
+    }
 }
