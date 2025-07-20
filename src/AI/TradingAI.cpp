@@ -544,6 +544,13 @@ void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_s
         metrics_file.close();
     }
 
+    std::filesystem::remove("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/trades.csv"); // Supprime le fichier s'il existe
+    std::ofstream trades_file("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/trades.csv", std::ios::out);
+    if (trades_file.is_open()) {
+        trades_file << "Episode,Timestep_Entry,Price_Entry,Timestep_Exit,Price_Exit,PnL,Entry_Action,Exit_Action\n";
+        trades_file.close();
+    }
+
     std::cout << "=== Training for " << num_trajectories << " trajectories ===" << std::endl;
     for (int episode = 1; episode < num_trajectories + 1; ++episode) {
         std::cout << "=== Episode " << episode << " ===" << std::endl;
@@ -599,5 +606,19 @@ void TradingEnvironment::computeMetrics(int episode) {
     }
     else {
         std::cerr << "Error: Could not append to metrics.csv" << std::endl;
+    }
+
+
+    std::ofstream trades_file("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/trades.csv", std::ios::app);
+    if (trades_file.is_open()) {
+        for (const auto& trade : trade_logs) {
+            trades_file << episode << "," << trade.timestep_entry << "," << trade.price_entry << ","
+                << trade.timestep_exit << "," << trade.price_exit << "," << trade.pnl << ","
+                << static_cast<int>(trade.entry_action) << "," << static_cast<int>(trade.exit_action) << "\n";
+        }
+        trades_file.close();
+    }
+    else {
+        std::cerr << "Error: Could not append to trades.csv" << std::endl;
     }
 }
