@@ -58,11 +58,23 @@ colors = get_color_gradient("#ba4343", "#1cba7d", n_curves)
 num_labels = 5
 label_indices = np.linspace(0, n_curves - 1, num=num_labels, dtype=int)
 
+best_episode = metrics_df.loc[metrics_df["Total_PnL"].idxmax(), "Episode"]
+
 for i, episode in enumerate(episodes):
     episode_trades = trades_df[trades_df["Episode"] == episode]
     cumulative_pnl = episode_trades["PnL"].cumsum()
+
+    if episode == best_episode:
+        best_curve_data = (episode_trades["Timestep_Exit"], cumulative_pnl)
+        continue
+
+
     label = f"Traj : {episode}" if i in label_indices else None
     axs[1, 1].plot(episode_trades["Timestep_Exit"], cumulative_pnl, label=label, color=colors[i])
+
+
+axs[1, 1].plot(best_curve_data[0], best_curve_data[1],
+               label=f"Best Traj : {best_episode}", color="#fc9403", linewidth=3)
 
 axs[1, 1].set_xlabel("Transition")
 axs[1, 1].set_ylabel("($)")

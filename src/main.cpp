@@ -151,7 +151,7 @@ int main() {
         TradingEnvironment env(&ob, &network, rng, 1, 10, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
-        env.train(5, 5, 32);
+        env.train(2, 5, 32);
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "Training took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 

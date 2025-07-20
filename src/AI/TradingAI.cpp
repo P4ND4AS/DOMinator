@@ -210,7 +210,7 @@ void TradingEnvironment::reset() {
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
 
-    auto policy_flat = policy.cpu().squeeze(0); // [1, 3] -> [3]
+    auto policy_flat = policy.cpu().squeeze(0);
     std::vector<float> probs = {
         policy_flat[0].item<float>(),
         policy_flat[1].item<float>(),
