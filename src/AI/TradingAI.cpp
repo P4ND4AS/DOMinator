@@ -148,16 +148,11 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
         );
     }
 
-    // Créer indices et mélanger
-    std::vector<int64_t> indices(current_size_);
-    std::iota(indices.begin(), indices.end(), 0);
-    std::shuffle(indices.begin(), indices.end(), rng);
-
-    // Prendre les batch_size premiers indices
     int64_t batch_size_actual = std::min(static_cast<int64_t>(batch_size), current_size_);
-    auto selected_indices = torch::tensor(indices).slice(0, 0, batch_size_actual).to(torch::kCUDA);
+    torch::manual_seed(rng());
+    auto selected_indices = torch::randperm(current_size_, torch::TensorOptions()
+        .dtype(torch::kInt64).device(torch::kCUDA)).slice(0, 0, batch_size_actual);
 
-    // Retourner les tranches indexées
     return std::make_tuple(
         heatmaps.slice(0, 0, current_size_).index_select(0, selected_indices),
         agent_states.slice(0, 0, current_size_).index_select(0, selected_indices),
@@ -183,7 +178,7 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
     optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(1e-4));
  
     std::cout << "filling up the heatmap matrix..." << "\n";
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 50; ++i) {
         orderBook->update(marketUpdatePerDecision, rng);
         heatmap.updateData(orderBook->getCurrentBook());
 
@@ -210,16 +205,8 @@ void TradingEnvironment::reset() {
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
 
-    auto policy_flat = policy.cpu().squeeze(0);
-    std::vector<float> probs = {
-        policy_flat[0].item<float>(),
-        policy_flat[1].item<float>(),
-        policy_flat[2].item<float>()
-    };
-
-    std::discrete_distribution<int> dist(probs.begin(), probs.end());
-    int action_index = dist(rng);
-
+    torch::manual_seed(rng());
+    auto action_index = torch::multinomial(policy, 1, true).item<int64_t>();
     return static_cast<Action>(action_index);
 }
 
