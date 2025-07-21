@@ -59,6 +59,5 @@ private:
 
     std::map<int64_t, BookSnapshot> bookHistory;
 
-    std::vector<Foyer> foyers_states = { {gSimuParams.addLiq.priceDist.mu_init, 
-                                          gSimuParams.addLiq.priceDist.sigma_init } };
+    std::vector<Foyer> foyers_states;
 };

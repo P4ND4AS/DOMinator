@@ -76,9 +76,11 @@ void OrderBook::initialize_book() {
     }
     currentBook.last_price = initialPrice;
     currentBook.last_side = lastSide;
+    currentBestAsk = initialPrice + ticksize;
+    currentBestBid = initialPrice - ticksize;
     
-    // bookHistory[currentTime] = currentBook;
-
+    foyers_states = { {gSimuParams.addLiq.priceDist.mu_init,
+                                          gSimuParams.addLiq.priceDist.sigma_init } };
 }
 
 void OrderBook::setInitialLiquidity(int n_orders, std::mt19937& rng) {
