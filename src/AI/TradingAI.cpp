@@ -168,9 +168,9 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
 // --------------------- TRADING ENVIRONMENT FOR TRAINING ---------------------
 
 
-TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network, 
+TradingEnvironment::TradingEnvironment(TradingAgentNet* network, 
     std::mt19937 rng, int N_trajectories,
-    int traj_duration, int decision_per_second) : orderBook(book), network(network), 
+    int traj_duration, int decision_per_second) : orderBook(), network(network), 
     traj_duration(traj_duration), decision_per_second(decision_per_second), 
     memoryBuffer(traj_duration * decision_per_second), heatmap(0, 50), rng(rng)
 
@@ -178,9 +178,12 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
     optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(1e-4));
  
     std::cout << "filling up the heatmap matrix..." << "\n";
+    orderBook.initialize_book();
+    orderBook.setInitialLiquidity(500, rng);
+    
     for (int i = 0; i < 50; ++i) {
-        orderBook->update(marketUpdatePerDecision, rng);
-        heatmap.updateData(orderBook->getCurrentBook());
+        orderBook.update(marketUpdatePerDecision, rng);
+        heatmap.updateData(orderBook.getCurrentBook());
 
     }
     heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
@@ -198,8 +201,21 @@ void TradingEnvironment::reset() {
     open_trade.reset();
     trade_logs.clear(); 
     memoryBuffer.clear(); 
-    std::cout << "After reset: trade_logs.size() = " << trade_logs.size() <<
-        ", memoryBuffer.size() = " << std::get<0>(memoryBuffer.get()).size(0) << std::endl;
+
+    orderBook.initialize_book();
+    orderBook.setInitialLiquidity(500, rng);
+    std::cout << "After reset: trade_logs.size() = " << trade_logs.size()
+        << ", memoryBuffer.size() = " << std::get<0>(memoryBuffer.get()).size(0)
+        << ", lastPrice = " << orderBook.getCurrentLastPrice()
+        <<"best bid = "<<orderBook.getCurrentBestBid()
+        <<"best ask : "<<orderBook.getCurrentBestAsk()<<"\n";
+    for (int i = 0; i < 50; ++i) {
+        orderBook.update(marketUpdatePerDecision, rng);
+        heatmap.updateData(orderBook.getCurrentBook());
+
+    }
+    
+
 }
 
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
@@ -211,8 +227,8 @@ Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 
 void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy, const torch::Tensor& value) {
     int current_timestep = current_decision_index;
-    float best_bid = orderBook->getCurrentBestBid();
-    float best_ask = orderBook->getCurrentBestAsk();
+    float best_bid = orderBook.getCurrentBestBid();
+    float best_ask = orderBook.getCurrentBestAsk();
     int current_position = agent_state.position;
 
     float commission = 4.58f;
@@ -238,10 +254,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
                 Action::BUY_MARKET,
                 Action::WAIT
             };
-            MarketOrder order = orderBook->generateMarketOrder();
+            MarketOrder order = orderBook.generateMarketOrder();
             order.side = Side::ASK;
             order.size = 1;
-            orderBook->processMarketOrder(order);
+            orderBook.processMarketOrder(order);
             //std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == -1) {
@@ -259,10 +275,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
                 open_trade.reset();
             }
             agent_state.position = 0;
-            MarketOrder order = orderBook->generateMarketOrder();
+            MarketOrder order = orderBook.generateMarketOrder();
             order.side = Side::ASK;
             order.size = 1;
-            orderBook->processMarketOrder(order);
+            orderBook.processMarketOrder(order);
             entry_price = best_ask;
         }
     }
@@ -282,10 +298,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
                 Action::SELL_MARKET,
                 Action::WAIT
             };
-            MarketOrder order = orderBook->generateMarketOrder();
+            MarketOrder order = orderBook.generateMarketOrder();
             order.side = Side::BID;
             order.size = 1;
-            orderBook->processMarketOrder(order);
+            orderBook.processMarketOrder(order);
             //std::cout << "position agent: " << agent_state.position << "\n";
         }
         else if (agent_state.position == 1) {
@@ -303,10 +319,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
                 open_trade.reset();
             }
             agent_state.position = 0;
-            MarketOrder order = orderBook->generateMarketOrder();
+            MarketOrder order = orderBook.generateMarketOrder();
             order.side = Side::BID;
             order.size = 1;
-            orderBook->processMarketOrder(order);
+            orderBook.processMarketOrder(order);
             entry_price = best_bid;
         }
     }
@@ -338,8 +354,8 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
 
 
 void TradingEnvironment::updateRewardWindows() {
-    float best_bid = orderBook->getCurrentBestBid();
-    float best_ask = orderBook->getCurrentBestAsk();
+    float best_bid = orderBook.getCurrentBestBid();
+    float best_ask = orderBook.getCurrentBestAsk();
 
     for (auto it = reward_windows.begin(); it != reward_windows.end();) {
         it->addPnL(best_bid, best_ask);
@@ -383,13 +399,13 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     std::cout << "=== Collecting transitions " << "\n";
     for (int i = 0; i < traj_duration * decision_per_second; ++i) {
         // Update order book
-        orderBook->update(marketUpdatePerDecision, rng);
-        float best_bid = orderBook->getCurrentBestBid();
-        float best_ask = orderBook->getCurrentBestAsk();
+        orderBook.update(marketUpdatePerDecision, rng);
+        float best_bid = orderBook.getCurrentBestBid();
+        float best_ask = orderBook.getCurrentBestAsk();
         //std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
 
         // Update heatmap and agent_state
-        heatmap.updateData(orderBook->getCurrentBook());
+        heatmap.updateData(orderBook.getCurrentBook());
         heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
             torch::kFloat).to(torch::kCUDA);
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
@@ -453,6 +469,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
 void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_size, 
     float clip_param, float value_loss_coef, float entropy_coef) {
     std::cout << "=== Optimizing network ===" << std::endl;
+
     const auto& transitions = memoryBuffer.get();
     int64_t num_transitions = std::get<0>(transitions).size(0);
     if (num_transitions == 0) {

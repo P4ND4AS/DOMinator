@@ -67,7 +67,7 @@ struct TradeLog {
 class TradingEnvironment {
 public:
 
-    TradingEnvironment(OrderBook* book, TradingAgentNet* network, 
+    TradingEnvironment(TradingAgentNet* network, 
         std::mt19937 rng, int N_trajectories = 1,
         int traj_duration = 10, int decision_per_second = 10);
 
@@ -93,7 +93,7 @@ public:
 
     int current_decision_index = 0;
 private:
-    OrderBook* orderBook;
+    OrderBook orderBook;
     Heatmap heatmap;       
     torch::Tensor heatmap_data_tensor;
     TradingAgentNet* network;
