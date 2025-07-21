@@ -205,9 +205,8 @@ void TradingEnvironment::reset() {
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
 
-    torch::manual_seed(rng());
-    auto action_index = torch::multinomial(policy, 1, true).item<int64_t>();
-    return static_cast<Action>(action_index);
+
+    return static_cast<Action>(torch::multinomial(policy, 1, true).item<int64_t>());
 }
 
 void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy, const torch::Tensor& value) {

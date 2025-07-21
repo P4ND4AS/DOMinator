@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 
+
 struct Transition {
     torch::Tensor heatmap;     
     torch::Tensor agent_state;  
