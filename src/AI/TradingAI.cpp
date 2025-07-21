@@ -5,7 +5,7 @@
 
 MemoryBuffer::MemoryBuffer(int64_t T_max) : T_max_(T_max), current_size_(0) {
     // Initialiser les tenseurs avec la taille maximale
-    heatmaps = torch::empty({ T_max, 1, 401, 800 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    heatmaps = torch::empty({ T_max, 1, 401, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     agent_states = torch::empty({ T_max, 1 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     actions = torch::empty({ T_max }, torch::dtype(torch::kInt64).device(torch::kCUDA));
     log_probs = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
@@ -31,7 +31,7 @@ void MemoryBuffer::store(const Transition& exp) {
         exp.reward.dim() != 1 || exp.value.dim() != 1 || exp.done.dim() != 1) {
         throw std::runtime_error("Transition tensor is not 1D");
     }
-    if (exp.heatmap.sizes() != torch::IntArrayRef({ 1, 401, 800 })) {
+    if (exp.heatmap.sizes() != torch::IntArrayRef({ 1, 401, 50 })) {
         throw std::runtime_error("Heatmap shape mismatch: expected [1, 401, 800], got " +
             std::to_string(exp.heatmap.sizes()[0]) + "," +
             std::to_string(exp.heatmap.sizes()[1]) + "," +
@@ -172,7 +172,7 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
     std::mt19937 rng, int N_trajectories,
     int traj_duration, int decision_per_second) : orderBook(book), network(network), 
     traj_duration(traj_duration), decision_per_second(decision_per_second), 
-    memoryBuffer(traj_duration * decision_per_second), heatmap(0, 800), rng(rng)
+    memoryBuffer(traj_duration * decision_per_second), heatmap(0, 50), rng(rng)
 
 {
     optimizer = new torch::optim::Adam(network->parameters(), torch::optim::AdamOptions().lr(1e-4));
@@ -183,7 +183,7 @@ TradingEnvironment::TradingEnvironment(OrderBook* book, TradingAgentNet* network
         heatmap.updateData(orderBook->getCurrentBook());
 
     }
-    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 },
+    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
         torch::kFloat).to(torch::kCUDA);
 }
 
@@ -391,10 +391,11 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
 
         // Update heatmap and agent_state
         heatmap.updateData(orderBook->getCurrentBook());
-        heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 800 },
+        heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
             torch::kFloat).to(torch::kCUDA);
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
+        
         auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor);
         //std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
         //std::cout << "  Value: " << value.item<float>() << std::endl;
