@@ -116,8 +116,8 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 		data(r, cols - 1) = volume;
 		domData[r] = volume * sign;
 	}
-	best_ask_history[cols - 1] = snapshot.best_ask;
-	best_bid_history[cols - 1] = snapshot.best_bid;
+	best_ask_history[cols - 1] = (snapshot.best_ask - initialPrice) / (depth * ticksize);
+	best_bid_history[cols - 1] = (snapshot.best_bid - initialPrice) / (depth * ticksize);
 }
 
 // Normaliser les données du DOM à l'écran

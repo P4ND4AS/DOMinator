@@ -48,14 +48,14 @@ std::mt19937 rng(rd());    // Générateur unique
 const char* fontPath = "fonts/RobotoMono-Regular.ttf";
 
 int main() {
+    SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED);
     //SetConsoleOutputCP(CP_UTF8);
-    std::cout << "Création OrderBook..." << std::endl;
+    std::cout << "OrderBook Generated" << "\n";
     OrderBook ob;
-    std::cout << "Ajout liquidité initiale..." << std::endl;
+    std::cout << "Initial Liquidity added" << "\n";
     ob.setInitialLiquidity(500, rng);
 
     const int n_iter = 10000;
-    std::cout << "Début simulation..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
     //ob.update(n_iter);
@@ -64,7 +64,7 @@ int main() {
     auto duration_micro = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     double duration_sec = duration_micro / 1e6;
 
-    std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
+    //std::cout << "\nSimulation terminée en " << duration_sec << " secondes (" << duration_micro << " µs)\n";
 
 
     // 1. Initialisation GLFW
@@ -144,18 +144,17 @@ int main() {
         // Définir le device (GPU)
         torch::Device device(torch::kCUDA);
 
-        std::cout << "Création TradingAgentNet..." << std::endl;
         TradingAgentNet network;
 
-        std::cout << "Creating TradingEnvironment..." << std::endl;
-        TradingEnvironment env(&network, rng, 1, 20, 10);
+        TradingEnvironment env(&network, rng, 1, 180, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
-        env.train(1, 5, 32);
+        env.train(100, 5, 32);
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "Training took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
         torch::cuda::synchronize();
+        //torch::save(network, "C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/agent_model.pt");
 
         std::system("python C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/scripts/metrics.py");
 
@@ -332,6 +331,6 @@ int main() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();*/
-
+    SetThreadExecutionState(ES_CONTINUOUS);
     return 0;
 }
