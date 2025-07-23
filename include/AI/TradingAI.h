@@ -10,7 +10,9 @@
 
 
 struct Transition {
-    torch::Tensor heatmap;     
+    torch::Tensor heatmap;    
+    torch::Tensor best_asks;
+    torch::Tensor best_bids;
     torch::Tensor agent_state;  
     torch::Tensor action;    
     torch::Tensor log_prob;     
@@ -27,19 +29,21 @@ public:
     void store(const Transition& exp);
     void clear();
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
-        torch::Tensor, torch::Tensor, torch::Tensor> get() const;
+        torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get() const;
 
     torch::Tensor computeReturns(float last_value, float gamma) const;
     torch::Tensor computeAdvantages(float last_value, float gamma, float lambda) const;
 
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
-        torch::Tensor, torch::Tensor, torch::Tensor>
+        torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
         sampleMiniBatch(int batch_size, std::mt19937& rng) const;
 
 private:
     int64_t T_max_;              // Taille maximale de la trajectoire
     int64_t current_size_;       // Nombre de transitions stockées
-    torch::Tensor heatmaps;      // [T_max, 1, 401, 800]
+    torch::Tensor heatmaps;      // [T_max, 1, 401, 50]
+    torch::Tensor best_asks;     // [T_max, 1, 50]
+    torch::Tensor best_bids;     // [T_max, 1, 50]
     torch::Tensor agent_states;  // [T_max, 1]
     torch::Tensor actions;       // [T_max]
     torch::Tensor log_probs;     // [T_max]
@@ -96,6 +100,8 @@ private:
     OrderBook orderBook;
     Heatmap heatmap;       
     torch::Tensor heatmap_data_tensor;
+    torch::Tensor best_asks_tensor;
+    torch::Tensor best_bids_tensor;
     TradingAgentNet* network;
     MemoryBuffer memoryBuffer;
     torch::optim::Adam* optimizer;

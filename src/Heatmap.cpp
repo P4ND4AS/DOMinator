@@ -5,7 +5,8 @@
 
 Heatmap::Heatmap(int r, int c)
 	: view_rows(r), cols(c), data(M, c),
-	last_price_row_history(c, 0.0f), domData(M, 0.0f)
+	last_price_row_history(c, 0.0f), domData(M, 0.0f), best_ask_history(c, 0.0f), 
+	best_bid_history(c, 0.0f)
 {
 	data.setZero();
 	createTexture();
@@ -92,8 +93,10 @@ void Heatmap::uploadLastPriceTexture() {
 void Heatmap::scrollLeft() {
 	data.leftCols(cols - 1) = data.rightCols(cols - 1);
 
-	for (int c = 0; c < cols - 1; ++c)
+	for (int c = 0; c < cols - 1; ++c) {
 		last_price_row_history[c] = last_price_row_history[c + 1];
+		best_ask_history[c] = best_ask_history[c + 1];
+	}
 }
 
 void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
@@ -113,6 +116,8 @@ void Heatmap::fillLastColumn(const BookSnapshot& snapshot) {
 		data(r, cols - 1) = volume;
 		domData[r] = volume * sign;
 	}
+	best_ask_history[cols - 1] = snapshot.best_ask;
+	best_bid_history[cols - 1] = snapshot.best_bid;
 }
 
 // Normaliser les données du DOM à l'écran

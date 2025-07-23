@@ -11,8 +11,10 @@ const extern Side lastSide;
 const extern double PI;
 
 struct BookSnapshot {
-    std::map<double, std::vector<LimitOrder>> prices;  // Les ordres à chaque niveau de prix
-    double last_price;                            // Dernier prix exécuté
+    std::map<double, std::vector<LimitOrder>> prices;
+    double last_price;  
+    double best_ask;
+    double best_bid;
     Side last_side;
 
     BookSnapshot() : last_price(20000.00), last_side(Side::ASK) {}

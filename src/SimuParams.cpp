@@ -4,30 +4,30 @@ SimuParams gSimuParams = {
 
 	.addLiq = {
 		.priceDist = {
-			.mu_jitter = 0.005,
+			.mu_jitter = 0.05,
 			.mu_init = 20010.00,
-			.p_birth = 0.00001,
-			.p_death = 0.00001,
-			.sigma_jitter = 0.001,   
+			.p_birth = 0.0001,
+			.p_death = 0.0001,
+			.sigma_jitter = 0.01,   
 			.sigma_init = 0.5,
 			.amplitudeBrownian = 0.1,
 			.powDistParam = 0.3,
 			.weight_brownian = 0.5,
-			.weight_power = 0.5,
+			.weight_power = 0.8,
 		},
 	},
 
 	.removeLiq = {
-		.mu_jitter = 0.005,
+		.mu_jitter = 0.05,
 		.mu_init = 20010.00,
-		.p_birth = 0.00001,
-		.p_death = 0.00001,
-		.sigma_jitter = 0.001,
+		.p_birth = 0.0001,
+		.p_death = 0.0001,
+		.sigma_jitter = 0.01,
 		.sigma_init = 0.5,
-		.amplitudeBrownian = 1,
+		.amplitudeBrownian = 0.1,
 		.powDistParam = 0.3,
 		.weight_brownian = 0.5,
-		.weight_power = 0.5,
+		.weight_power = 0.8,
 	},
 
 	.marketOrder = {

@@ -6,6 +6,8 @@
 MemoryBuffer::MemoryBuffer(int64_t T_max) : T_max_(T_max), current_size_(0) {
     // Initialiser les tenseurs avec la taille maximale
     heatmaps = torch::empty({ T_max, 1, 401, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    best_asks = torch::empty({ T_max, 1, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
+    best_bids = torch::empty({ T_max, 1, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     agent_states = torch::empty({ T_max, 1 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     actions = torch::empty({ T_max }, torch::dtype(torch::kInt64).device(torch::kCUDA));
     log_probs = torch::empty({ T_max }, torch::dtype(torch::kFloat).device(torch::kCUDA));
@@ -39,6 +41,8 @@ void MemoryBuffer::store(const Transition& exp) {
     }
 
     heatmaps[current_size_] = exp.heatmap.clone().detach();
+    best_asks[current_size_] = exp.best_asks.clone().detach();
+    best_bids[current_size_] = exp.best_bids.clone().detach();
     agent_states[current_size_] = exp.agent_state.clone().detach();
     actions[current_size_] = exp.action.clone().detach().item<int64_t>();
     log_probs[current_size_] = exp.log_prob.clone().detach().item<float>();
@@ -52,6 +56,8 @@ void MemoryBuffer::clear() {
     current_size_ = 0;
     
     heatmaps.zero_();
+    best_asks.zero_();
+    best_bids.zero_();
     agent_states.zero_();
     actions.zero_();
     log_probs.zero_();
@@ -60,17 +66,20 @@ void MemoryBuffer::clear() {
     dones.zero_();
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, 
-    torch::Tensor, torch::Tensor, torch::Tensor> MemoryBuffer::get() const {
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
+    torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+    MemoryBuffer::get() const {
     if (current_size_ == 0) {
         return std::make_tuple(
-            torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
         );
     }
     // Retourner les tranches des tenseurs jusqu'à current_size_
     return std::make_tuple(
         heatmaps.slice(0, 0, current_size_),
+        best_asks.slice(0, 0, current_size_),
+        best_bids.slice(0, 0, current_size_),
         agent_states.slice(0, 0, current_size_),
         actions.slice(0, 0, current_size_),
         log_probs.slice(0, 0, current_size_),
@@ -139,12 +148,12 @@ torch::Tensor MemoryBuffer::computeAdvantages(float last_value, float gamma, flo
 }
 
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
     if (current_size_ == 0) {
         return std::make_tuple(
             torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
+            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
         );
     }
 
@@ -155,6 +164,8 @@ MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
 
     return std::make_tuple(
         heatmaps.slice(0, 0, current_size_).index_select(0, selected_indices),
+        best_asks.slice(0, 0, current_size_).index_select(0, selected_indices),
+        best_bids.slice(0, 0, current_size_).index_select(0, selected_indices),
         agent_states.slice(0, 0, current_size_).index_select(0, selected_indices),
         actions.slice(0, 0, current_size_).index_select(0, selected_indices),
         log_probs.slice(0, 0, current_size_).index_select(0, selected_indices),
@@ -188,6 +199,10 @@ TradingEnvironment::TradingEnvironment(TradingAgentNet* network,
     }
     heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
         torch::kFloat).to(torch::kCUDA);
+    best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 50 },
+        torch::kFloat).to(torch::kCUDA);
+    best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 50 },
+        torch::kFloat).to(torch::kCUDA);
 }
 
 TradingEnvironment::~TradingEnvironment() { delete optimizer; }
@@ -207,8 +222,8 @@ void TradingEnvironment::reset() {
     std::cout << "After reset: trade_logs.size() = " << trade_logs.size()
         << ", memoryBuffer.size() = " << std::get<0>(memoryBuffer.get()).size(0)
         << ", lastPrice = " << orderBook.getCurrentLastPrice()
-        <<"best bid = "<<orderBook.getCurrentBestBid()
-        <<"best ask : "<<orderBook.getCurrentBestAsk()<<"\n";
+        <<"best bid = "<<orderBook.getCurrentBook().best_bid
+        <<"best ask : "<<orderBook.getCurrentBook().best_ask <<"\n";
     for (int i = 0; i < 50; ++i) {
         orderBook.update(marketUpdatePerDecision, rng);
         heatmap.updateData(orderBook.getCurrentBook());
@@ -220,7 +235,6 @@ void TradingEnvironment::reset() {
 
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
 	std::mt19937& rng) {
-
 
     return static_cast<Action>(torch::multinomial(policy, 1, true).item<int64_t>());
 }
@@ -346,9 +360,12 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
 
     torch::Tensor heatmap_for_storage = heatmap_data_tensor.squeeze(1); // [1, 1, 401, 800] -> [1, 401, 800]
     torch::Tensor state_tensor = agent_state.toTensor(); // [1]
+ 
     RewardWindow rw(current_decision_index, action, entry_price, current_position,
         policy[0][static_cast<int64_t>(action)].unsqueeze(0).to(torch::kCUDA),
-        value, heatmap_for_storage, state_tensor, isInvalid);
+        value, heatmap_for_storage, state_tensor, best_asks_tensor, 
+        best_bids_tensor, isInvalid);
+
     reward_windows.push_back(rw);
 }
 
@@ -367,7 +384,8 @@ void TradingEnvironment::updateRewardWindows() {
             torch::Tensor log_prob = torch::log(it->proba);
             torch::Tensor done_tensor = torch::tensor({ isEpisodeDone ? 1.0f : 0.0f },
                 torch::kFloat).to(torch::kCUDA);
-            Transition transition{ it->heatmap, it->agent_state_tensor, action_tensor,
+            Transition transition{ it->heatmap, it->best_asks, it->best_bids,
+                                it->agent_state_tensor, action_tensor,
                                 log_prob, reward, it->value.squeeze(0), done_tensor };
             memoryBuffer.store(transition);
 
@@ -408,6 +426,10 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         heatmap.updateData(orderBook.getCurrentBook());
         heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
             torch::kFloat).to(torch::kCUDA);
+        best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 50 },
+            torch::kFloat).to(torch::kCUDA);
+        best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 50 },
+            torch::kFloat).to(torch::kCUDA);
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
         
@@ -440,8 +462,8 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     }
 
     // Print transitions
-    /*std::cout << "=== Transitions recorded ===" << std::endl;
-    const auto& transitions = memoryBuffer.get();
+    std::cout << "=== Transitions recorded ===" << std::endl;
+    /*const auto& transitions = memoryBuffer.get();
     int64_t num_transitions = std::get<0>(transitions).size(0);
     for (int64_t i = 0; i < num_transitions; ++i) {
         std::cout << "Transition #" << i << std::endl;
@@ -494,12 +516,14 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
             //Sample minibatch
             auto batch = memoryBuffer.sampleMiniBatch(batch_size, rng);
             auto batch_states = std::get<0>(batch); 
-            auto batch_agent_states = std::get<1>(batch); 
-            auto batch_actions = std::get<2>(batch); 
-            auto batch_old_log_probs = std::get<3>(batch); 
-            auto batch_rewards = std::get<4>(batch); 
-            auto batch_old_values = std::get<5>(batch); 
-            auto batch_dones = std::get<6>(batch); 
+            auto batch_best_asks = std::get<1>(batch);
+            auto batch_best_bids = std::get<2>(batch);
+            auto batch_agent_states = std::get<3>(batch); 
+            auto batch_actions = std::get<4>(batch); 
+            auto batch_old_log_probs = std::get<5>(batch); 
+            auto batch_rewards = std::get<6>(batch); 
+            auto batch_old_values = std::get<7>(batch); 
+            auto batch_dones = std::get<8>(batch); 
 
             // Extract Advantages and Returns for that specific mini-batch
             auto batch_advantages = advantages.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));

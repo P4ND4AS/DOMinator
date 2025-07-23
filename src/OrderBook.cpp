@@ -74,10 +74,13 @@ void OrderBook::initialize_book() {
     for (double price : prices) {
         currentBook.prices[price] = {};
     }
-    currentBook.last_price = initialPrice;
-    currentBook.last_side = lastSide;
     currentBestAsk = initialPrice + ticksize;
     currentBestBid = initialPrice - ticksize;
+
+    currentBook.last_price = initialPrice;
+    currentBook.last_side = lastSide;
+    currentBook.best_ask = currentBestAsk;
+    currentBook.best_bid = currentBestBid;
     
     foyers_states = { {gSimuParams.addLiq.priceDist.mu_init,
                                           gSimuParams.addLiq.priceDist.sigma_init } };
@@ -94,8 +97,7 @@ void OrderBook::setInitialLiquidity(int n_orders, std::mt19937& rng) {
             break;
         }
     }
-    //bookHistory[currentTime] = currentBook;
-    //std::cout << "CurrentBestBid: " << currentBestBid << "\nand CurrentBestAsk: " << currentBestAsk << '\n';
+    
 }
 
 
@@ -137,9 +139,17 @@ void OrderBook::print_book_history() const {
 
 LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
 
+    double& p_death = gSimuParams.addLiq.priceDist.p_death;
+    double& p_birth = gSimuParams.addLiq.priceDist.p_birth;
+    double& sigma_init = gSimuParams.addLiq.priceDist.sigma_init;
+    double& mu_jitter = gSimuParams.addLiq.priceDist.mu_jitter;
+    double& sigma_jitter = gSimuParams.addLiq.priceDist.sigma_jitter;
+
     double S = currentBestAsk - currentBestBid;
     double q1Bid = 0;// getVolumeAt(...);
     double q1Ask = 0;// getVolumeAt(...);
+
+    updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter);
 
     Side side = sampleAddLiqSide(gSimuParams, S, q1Ask, q1Bid, rng);
 
@@ -171,7 +181,13 @@ LimitOrder OrderBook::addLimitOrder(std::mt19937& rng) {
 void OrderBook::cancelLiquidity(std::mt19937& rng) {
     if (currentBook.prices.empty()) return;
 
+    double& p_death = gSimuParams.removeLiq.p_death;
+    double& p_birth = gSimuParams.removeLiq.p_birth;
+    double& sigma_init = gSimuParams.removeLiq.sigma_init;
+    double& mu_jitter = gSimuParams.removeLiq.mu_jitter;
+    double& sigma_jitter = gSimuParams.removeLiq.sigma_jitter;
 
+    updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter);
     double price = sampleRemoveLiqPrice(gSimuParams, currentBestBid, currentBestAsk, minPrice,
                                         maxPrice, prices, foyers_states, rng);
 
@@ -291,16 +307,10 @@ void OrderBook::processMarketOrder(const MarketOrder& order) {
 
 
 void OrderBook::update(int n_iter, std::mt19937& rng) {
-    double& p_death = gSimuParams.addLiq.priceDist.p_death;
-    double& p_birth = gSimuParams.addLiq.priceDist.p_birth;
-    double& sigma_init = gSimuParams.addLiq.priceDist.sigma_init;
-    double& mu_jitter = gSimuParams.addLiq.priceDist.mu_jitter;
-    double& sigma_jitter = gSimuParams.addLiq.priceDist.sigma_jitter;
 
     for (int i = 0; i < n_iter; ++i) {
 
         currentTime += timestep;
-        updateFoyerState(foyers_states, prices, rng, p_death, p_birth, sigma_init, mu_jitter, sigma_jitter);
 
         double p_add_liq = sampleLambdaL(gSimuParams, 0, 0, 0, rng);
 
@@ -323,8 +333,7 @@ void OrderBook::update(int n_iter, std::mt19937& rng) {
 
         }
 
-        //bookHistory[currentTime] = currentBook;
-        //bestAsks.push_back(currentBestAsk);
-        //bestBids.push_back(currentBestBid);
+        currentBook.best_ask = currentBestAsk;
+        currentBook.best_bid = currentBestBid;
     }
 }

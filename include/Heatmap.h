@@ -16,6 +16,9 @@ public:
 
 	//Pour la ligne du trait de 'last_price' par colonne
 	std::vector<float> last_price_row_history;
+	std::vector<float> best_ask_history;
+	std::vector<float> best_bid_history;
+
 	GLuint last_price_textureID;
 
 	double min_price = initialPrice - ((M - 1) / 2) * ticksize;
