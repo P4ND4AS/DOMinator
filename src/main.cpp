@@ -148,7 +148,7 @@ int main() {
         TradingAgentNet network;
 
         std::cout << "Creating TradingEnvironment..." << std::endl;
-        TradingEnvironment env(&network, rng, 1, 10, 10);
+        TradingEnvironment env(&network, rng, 1, 20, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
         env.train(1, 5, 32);

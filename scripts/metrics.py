@@ -18,8 +18,8 @@ def get_color_gradient(start_hex, end_hex, n):
     end_rgb = np.array(mcolors.to_rgb(end_hex))
     return [mcolors.to_hex(start_rgb + (end_rgb - start_rgb) * i / (n - 1)) for i in range(n)]
 
-metrics_df = pd.read_csv("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics_540_1.csv")
-trades_df = pd.read_csv("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/trades_540_1.csv")
+metrics_df = pd.read_csv("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics.csv")
+trades_df = pd.read_csv("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/trades.csv")
 
 pnl_colors = ["#1cba7d" if val >= 0 else "#ba4343" for val in metrics_df["Total_PnL"]]
 sharpe_colors = ["#1cba7d" if val >= 0 else "#ba4343" for val in metrics_df["Sharpe_Ratio"]]

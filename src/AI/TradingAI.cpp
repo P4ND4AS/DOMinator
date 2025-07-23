@@ -199,9 +199,9 @@ TradingEnvironment::TradingEnvironment(TradingAgentNet* network,
     }
     heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
         torch::kFloat).to(torch::kCUDA);
-    best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 50 },
+    best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
         torch::kFloat).to(torch::kCUDA);
-    best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 50 },
+    best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
         torch::kFloat).to(torch::kCUDA);
 }
 
@@ -360,11 +360,13 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
 
     torch::Tensor heatmap_for_storage = heatmap_data_tensor.squeeze(1); // [1, 1, 401, 800] -> [1, 401, 800]
     torch::Tensor state_tensor = agent_state.toTensor(); // [1]
+    torch::Tensor best_asks_fot_storage = best_asks_tensor.squeeze(1);
+    torch::Tensor best_bids_fot_storage = best_bids_tensor.squeeze(1);
  
     RewardWindow rw(current_decision_index, action, entry_price, current_position,
         policy[0][static_cast<int64_t>(action)].unsqueeze(0).to(torch::kCUDA),
-        value, heatmap_for_storage, state_tensor, best_asks_tensor, 
-        best_bids_tensor, isInvalid);
+        value, heatmap_for_storage, state_tensor, best_asks_fot_storage,
+        best_bids_fot_storage, isInvalid);
 
     reward_windows.push_back(rw);
 }
@@ -414,26 +416,47 @@ void TradingEnvironment::printTradeLogs() const {
 }
 
 void TradingEnvironment::collectTransitions(std::mt19937& rng) {
-    std::cout << "=== Collecting transitions " << "\n";
+    int total_steps = traj_duration * decision_per_second;
+    int bar_width = 20;
+    const int display_interval = total_steps / bar_width;
+
     for (int i = 0; i < traj_duration * decision_per_second; ++i) {
         // Update order book
         orderBook.update(marketUpdatePerDecision, rng);
         float best_bid = orderBook.getCurrentBestBid();
         float best_ask = orderBook.getCurrentBestAsk();
-        //std::cout << "  Best Bid: " << best_bid << ", Best Ask: " << best_ask << std::endl;
+        
+        if (best_ask >= 20045.0f || best_bid <= 19955.0f) {
+            std::cout << "[INFO] Trajectory interrupted: price out of bounds. "
+                << "best_ask=" << best_ask << ", best_bid=" << best_bid << "\n";
+            isEpisodeDone = true;
+            break;
+        }
+
+        // ---------- Console Debugging ----------
+        if (i % display_interval == 0 || i == total_steps - 1) {
+            float progress = static_cast<float>(i + 1) / total_steps;
+            int pos = static_cast<int>(bar_width * progress);
+
+            std::cout << "\rCollecting transitions: [";
+            for (int j = 0; j < bar_width; ++j)
+                std::cout << (j < pos ? "#" : "-");
+            std::cout << "] " << int(progress * 100.0) << "%" << std::flush;
+        }
+        // ---------------------------------------
 
         // Update heatmap and agent_state
         heatmap.updateData(orderBook.getCurrentBook());
         heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
             torch::kFloat).to(torch::kCUDA);
-        best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 50 },
+        best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
             torch::kFloat).to(torch::kCUDA);
-        best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 50 },
+        best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
             torch::kFloat).to(torch::kCUDA);
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
         
-        auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor);
+        auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor, best_asks_tensor, best_bids_tensor);
         //std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
         //std::cout << "  Value: " << value.item<float>() << std::endl;
 
@@ -462,7 +485,6 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     }
 
     // Print transitions
-    std::cout << "=== Transitions recorded ===" << std::endl;
     /*const auto& transitions = memoryBuffer.get();
     int64_t num_transitions = std::get<0>(transitions).size(0);
     for (int64_t i = 0; i < num_transitions; ++i) {
@@ -485,12 +507,11 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     // Afficher l'historique des trades
     //std::cout << "=== Trade history ===" << std::endl;
     //printTradeLogs();
-
+    std::cout << "\n";
 }
 
 void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_size, 
     float clip_param, float value_loss_coef, float entropy_coef) {
-    std::cout << "=== Optimizing network ===" << std::endl;
 
     const auto& transitions = memoryBuffer.get();
     int64_t num_transitions = std::get<0>(transitions).size(0);
@@ -508,7 +529,7 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
 
     // Optimization loop
     for (int epoch = 1; epoch < num_epochs + 1; ++epoch) {
-        std::cout << "Epoch " << epoch << "/" << num_epochs << "\n";
+        std::cout << "\rOptimizing: [" << (epoch) << " / " << num_epochs << "]" << std::flush;
 
         int64_t num_batches = (num_transitions + batch_size - 1) / batch_size;
 
@@ -530,7 +551,7 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
             auto batch_returns = returns.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
 
             // Compute new policy and value
-            auto [policy, value] = network->forward(batch_states, batch_agent_states);
+            auto [policy, value] = network->forward(batch_states, batch_agent_states, batch_best_asks, batch_best_bids);
             auto log_probs = torch::log(policy.gather(1, batch_actions.unsqueeze(1))).squeeze(1);
             auto ratios = torch::exp(log_probs - batch_old_log_probs);
 
@@ -561,6 +582,7 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
                 << ", Total loss = " << loss.item<float>() << std::endl;*/
         }
     }
+    std::cout << "\n";
 }
 
 
@@ -586,7 +608,7 @@ void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_s
         collectTransitions(rng);
         optimize(rng, num_epochs, batch_size, clip_param, value_loss_coef, entropy_coef);
         computeMetrics(episode);
-        std::cout << "Episode " << episode << " completed." << std::endl;
+
     }
     std::cout << "=== Training completed ===" << std::endl;
     torch::cuda::synchronize();
@@ -621,10 +643,10 @@ void TradingEnvironment::computeMetrics(int episode) {
     variance /= std::max(1, static_cast<int>(pnls.size()));
     float sharpe = variance > 0.0f ? mean_pnl / (std::sqrt(variance) + 1e-8) : 0.0f;
 
-    std::cout << "Number of trades: " << trade_logs.size() << std::endl;
-    std::cout << "Total PnL: " << total_pnl << " $" << std::endl;
-    std::cout << "Max Drawdown: " << max_drawdown << " $" << std::endl;
-    std::cout << "Sharpe Ratio: " << sharpe << std::endl;
+    //std::cout << "Number of trades: " << trade_logs.size() << std::endl;
+    //std::cout << "Total PnL: " << total_pnl << " $" << std::endl;
+    //std::cout << "Max Drawdown: " << max_drawdown << " $" << std::endl;
+    //std::cout << "Sharpe Ratio: " << sharpe << std::endl;
 
     std::ofstream metrics_file("C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/metrics.csv", std::ios::app);
     if (metrics_file.is_open()) {
