@@ -132,6 +132,9 @@
     <ClCompile Include="src\AI\TradingAI.cpp">
       <Filter>Fichiers sources\AI</Filter>
     </ClCompile>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\geometry\Quad.h">
@@ -205,6 +208,9 @@
     </ClInclude>
     <ClInclude Include="include\AI\RewardWindow.h">
       <Filter>Fichiers d%27en-tête\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pch.h">
+      <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AI/TradingAI.h"
 #include "Heatmap.h"
 #include <iostream>
