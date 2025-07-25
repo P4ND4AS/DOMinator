@@ -1,18 +1,25 @@
-#include "pch.h"
 #include "engine/OrderBook.h"
 #include "../include/Shader.h"
 #include "geometry/Quad.h"
 #include "../include/text/TextRenderer.h"
 #include "../include/input_callbacks.h"
 #include "../include/text/YAxis.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include "UI/model_parameters.h"
 #include "renderDomHistogram.h"
 #include "UI/buttonsForTrades.h"
+
+#include <cuda_runtime.h>
 #include "AI/NeuralNetwork.h"
 #include "AI/TradingAI.h"
 #include <iostream>
 #include <string> 
+#include <windows.h>
 #include <chrono>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <thread>
 #include "Heatmap.h"
 #include <ft2build.h>
@@ -139,10 +146,10 @@ int main() {
 
         TradingAgentNet network;
 
-        TradingEnvironment env(&network, rng, 1, 10, 10);
+        TradingEnvironment env(&network, rng, 1, 180, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
-        env.train(2, 5, 32);
+        env.train(100, 5, 32);
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "Training took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 

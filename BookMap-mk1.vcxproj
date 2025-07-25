@@ -122,9 +122,6 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)include\imgui;C:\Users\Ilan\VisualStudioProjects\libtorch\include;C:\Users\Ilan\VisualStudioProjects\libtorch\include\torch\csrc\api\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,9 +141,7 @@
     <ClCompile Include="src\densities\density_round.cpp" />
     <ClCompile Include="src\densities\density_utils.cpp" />
     <ClCompile Include="src\geometry\Quad.cpp" />
-    <ClCompile Include="src\glad.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\Heatmap.cpp" />
     <ClCompile Include="src\imgui\imgui.cpp" />
     <ClCompile Include="src\imgui\imgui_draw.cpp" />
@@ -157,9 +152,6 @@
     <ClCompile Include="src\input_callbacks.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\OrderBook.cpp" />
-    <ClCompile Include="src\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\renderDomHistogram.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
     <ClCompile Include="src\SimuParams.cpp" />
@@ -185,7 +177,6 @@
     <ClInclude Include="include\glad\glad.h" />
     <ClInclude Include="include\Heatmap.h" />
     <ClInclude Include="include\input_callbacks.h" />
-    <ClInclude Include="include\pch.h" />
     <ClInclude Include="include\renderDomHistogram.h" />
     <ClInclude Include="include\Shader.h" />
     <ClInclude Include="include\Text\TextRenderer.h" />
