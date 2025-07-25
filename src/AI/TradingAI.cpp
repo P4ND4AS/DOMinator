@@ -148,31 +148,30 @@ torch::Tensor MemoryBuffer::computeAdvantages(float last_value, float gamma, flo
 }
 
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
-MemoryBuffer::sampleMiniBatch(int batch_size, std::mt19937& rng) const {
+Transition MemoryBuffer::sampleMiniBatch(int batch_size, const torch::Tensor& indices) const {
     if (current_size_ == 0) {
-        return std::make_tuple(
+        return Transition{
             torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
-        );
+            torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(), torch::Tensor(), torch::Tensor()
+        };
     }
 
-    int64_t batch_size_actual = std::min(static_cast<int64_t>(batch_size), current_size_);
-    torch::manual_seed(rng());
-    auto selected_indices = torch::randperm(current_size_, torch::TensorOptions()
-        .dtype(torch::kInt64).device(torch::kCUDA)).slice(0, 0, batch_size_actual);
+    auto sliced = [&](const torch::Tensor& t) {
+        return t.slice(0, 0, current_size_).index_select(0, indices).to(torch::kCUDA);
+        };
 
-    return std::make_tuple(
-        heatmaps.slice(0, 0, current_size_).index_select(0, selected_indices),
-        best_asks.slice(0, 0, current_size_).index_select(0, selected_indices),
-        best_bids.slice(0, 0, current_size_).index_select(0, selected_indices),
-        agent_states.slice(0, 0, current_size_).index_select(0, selected_indices),
-        actions.slice(0, 0, current_size_).index_select(0, selected_indices),
-        log_probs.slice(0, 0, current_size_).index_select(0, selected_indices),
-        rewards.slice(0, 0, current_size_).index_select(0, selected_indices),
-        values.slice(0, 0, current_size_).index_select(0, selected_indices),
-        dones.slice(0, 0, current_size_).index_select(0, selected_indices)
-    );
+    return Transition{
+        sliced(heatmaps),
+        sliced(best_asks),
+        sliced(best_bids),
+        sliced(agent_states),
+        sliced(actions),
+        sliced(log_probs),
+        sliced(rewards),
+        sliced(values),
+        sliced(dones)
+    };
 }
 
 
@@ -219,18 +218,18 @@ void TradingEnvironment::reset() {
 
     orderBook.initialize_book();
     orderBook.setInitialLiquidity(500, rng);
-    std::cout << "After reset: trade_logs.size() = " << trade_logs.size()
-        << ", memoryBuffer.size() = " << std::get<0>(memoryBuffer.get()).size(0)
-        << ", lastPrice = " << orderBook.getCurrentLastPrice()
-        <<"best bid = "<<orderBook.getCurrentBook().best_bid
-        <<"best ask : "<<orderBook.getCurrentBook().best_ask <<"\n";
+
     for (int i = 0; i < 50; ++i) {
         orderBook.update(marketUpdatePerDecision, rng);
         heatmap.updateData(orderBook.getCurrentBook());
 
     }
-    
-
+    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
+        torch::kFloat).to(torch::kCUDA);
+    best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
+        torch::kFloat).to(torch::kCUDA);
+    best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
+        torch::kFloat).to(torch::kCUDA);
 }
 
 Action TradingEnvironment::sampleFromPolicy(const torch::Tensor& policy,
@@ -510,7 +509,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
     std::cout << "\n";
 }
 
-void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_size, 
+void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_size,
     float clip_param, float value_loss_coef, float entropy_coef) {
 
     const auto& transitions = memoryBuffer.get();
@@ -519,11 +518,11 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
         std::cout << "No transitions to optimize" << std::endl;
         return;
     }
-
+    int64_t num_batches = (num_transitions + batch_size - 1) / batch_size;
     // Compute Advantages and Returns
-    float last_value = 0.0f; 
-    float gamma = 0.99f; 
-    float lambda = 0.95f; 
+    float last_value = 0.0f;
+    float gamma = 0.99f;
+    float lambda = 0.95f;
     torch::Tensor advantages = memoryBuffer.computeAdvantages(last_value, gamma, lambda);
     torch::Tensor returns = memoryBuffer.computeReturns(last_value, gamma);
 
@@ -531,29 +530,24 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
     for (int epoch = 1; epoch < num_epochs + 1; ++epoch) {
         std::cout << "\rOptimizing: [" << (epoch) << " / " << num_epochs << "]" << std::flush;
 
-        int64_t num_batches = (num_transitions + batch_size - 1) / batch_size;
+        auto all_indices = torch::randperm(num_transitions, torch::TensorOptions().dtype(torch::kInt64)).to(torch::kCUDA);
 
         for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
             //Sample minibatch
-            auto batch = memoryBuffer.sampleMiniBatch(batch_size, rng);
-            auto batch_states = std::get<0>(batch); 
-            auto batch_best_asks = std::get<1>(batch);
-            auto batch_best_bids = std::get<2>(batch);
-            auto batch_agent_states = std::get<3>(batch); 
-            auto batch_actions = std::get<4>(batch); 
-            auto batch_old_log_probs = std::get<5>(batch); 
-            auto batch_rewards = std::get<6>(batch); 
-            auto batch_old_values = std::get<7>(batch); 
-            auto batch_dones = std::get<8>(batch); 
+            auto start = batch_idx * batch_size;
+            auto end = std::min(start + batch_size, num_transitions);
+            auto selected_indices = all_indices.slice(0, start, end);
+
+            Transition batch = memoryBuffer.sampleMiniBatch(batch_size, selected_indices);
 
             // Extract Advantages and Returns for that specific mini-batch
-            auto batch_advantages = advantages.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
-            auto batch_returns = returns.index_select(0, torch::arange(batch_states.size(0), torch::kInt64).to(torch::kCUDA));
+            auto batch_advantages = advantages.index_select(0, selected_indices);
+            auto batch_returns = returns.index_select(0, selected_indices);
 
             // Compute new policy and value
-            auto [policy, value] = network->forward(batch_states, batch_agent_states, batch_best_asks, batch_best_bids);
-            auto log_probs = torch::log(policy.gather(1, batch_actions.unsqueeze(1))).squeeze(1);
-            auto ratios = torch::exp(log_probs - batch_old_log_probs);
+            auto [policy, value] = network->forward(batch.heatmap, batch.agent_state, batch.best_asks, batch.best_bids);
+            auto log_probs = torch::log(policy.gather(1, batch.action.unsqueeze(1))).squeeze(1);
+            auto ratios = torch::exp(log_probs - batch.log_prob);
 
             // Perte PPO
             auto surr1 = ratios * batch_advantages;
@@ -617,7 +611,6 @@ void TradingEnvironment::train(int num_trajectories, int num_epochs, int batch_s
 
 
 void TradingEnvironment::computeMetrics(int episode) {
-    std::cout << "=== Trading Metrics ===" << std::endl;
     if (trade_logs.empty()) {
         std::cout << "No trades recorded" << std::endl;
         return;

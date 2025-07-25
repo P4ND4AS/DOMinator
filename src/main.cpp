@@ -149,14 +149,13 @@ int main() {
         TradingEnvironment env(&network, rng, 1, 180, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
-        env.train(100, 5, 32);
+        env.train(1, 5, 32);
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "Training took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
         torch::cuda::synchronize();
-        //torch::save(network, "C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/agent_model.pt");
+        
 
-        std::system("python C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/scripts/metrics.py");
 
     } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;

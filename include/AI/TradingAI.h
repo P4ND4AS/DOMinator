@@ -9,16 +9,17 @@
 #include <filesystem>
 
 
+// Represents either a single iteration during data collecting OR a batch during optimization
 struct Transition {
-    torch::Tensor heatmap;    
+    torch::Tensor heatmap;
     torch::Tensor best_asks;
     torch::Tensor best_bids;
-    torch::Tensor agent_state;  
-    torch::Tensor action;    
-    torch::Tensor log_prob;     
-    torch::Tensor reward;    
-    torch::Tensor value;   
-    torch::Tensor done;    
+    torch::Tensor agent_state;
+    torch::Tensor action;
+    torch::Tensor log_prob;
+    torch::Tensor reward;
+    torch::Tensor value;
+    torch::Tensor done;
 };
 
 
@@ -34,9 +35,7 @@ public:
     torch::Tensor computeReturns(float last_value, float gamma) const;
     torch::Tensor computeAdvantages(float last_value, float gamma, float lambda) const;
 
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
-        torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
-        sampleMiniBatch(int batch_size, std::mt19937& rng) const;
+    Transition sampleMiniBatch(int batch_size, const torch::Tensor& indices) const;
 
 private:
     int64_t T_max_;              // Taille maximale de la trajectoire
