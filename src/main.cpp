@@ -139,7 +139,7 @@ int main() {
 
         TradingAgentNet network;
 
-        TradingEnvironment env(&network, rng, 1, 180, 10);
+        TradingEnvironment env(&network, rng, 1, 10, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
         env.train(2, 5, 32);
@@ -148,6 +148,8 @@ int main() {
 
         torch::cuda::synchronize();
         //torch::save(network, "C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/assets/agent_model.pt");
+
+        std::system("python C:/Users/Ilan/VisualStudioProjects/BookMap-mk1/scripts/metrics.py");
 
     } catch (const std::exception& e) {
         std::cerr << "Erreur standard : " << e.what() << std::endl;
