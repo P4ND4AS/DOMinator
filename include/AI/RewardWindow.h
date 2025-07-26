@@ -26,7 +26,6 @@ struct RewardWindow {
     float entry_price;
     int agent_state_at_action;
     torch::Tensor latent_pnls;
-    torch::Tensor heatmap;
     torch::Tensor best_asks;
     torch::Tensor best_bids;
     torch::Tensor agent_state_tensor;
@@ -34,17 +33,17 @@ struct RewardWindow {
     bool isInvalid;
 
     RewardWindow(int idx, Action act, float price, int state, const torch::Tensor& p,
-        const torch::Tensor& v, const torch::Tensor& h, const torch::Tensor& s,
+        const torch::Tensor& v, const torch::Tensor& s,
         const torch::Tensor& a, const torch::Tensor& b,
         bool invalid = false)
         : decision_index(idx), action(act), proba(p), value(v), entry_price(price),
         agent_state_at_action(state), isInvalid(invalid),
         latent_pnls(torch::empty({ 0 }, torch::kFloat).to(torch::kCUDA)),
-        heatmap(h), agent_state_tensor(s), best_asks(a), best_bids(b) {
+        agent_state_tensor(s), best_asks(a), best_bids(b) {
     }
 
     bool isComplete() const {
-        return latent_pnls.size(0) >= 10; // ou autre valeur N
+        return latent_pnls.size(0) >= 100; // ou autre valeur N
     }
 
     torch::Tensor computeWeightedReward(float alpha = 0.2f) const {
@@ -72,7 +71,7 @@ struct RewardWindow {
     }
 
     void addPnL(float best_bid, float best_ask) {
-        if (latent_pnls.size(0) >= 10) {
+        if (latent_pnls.size(0) >= 100) {
             //std::cout << "RewardWindow full, skipping addPnL" << std::endl;
             return;
         }

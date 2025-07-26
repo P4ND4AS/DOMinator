@@ -11,7 +11,6 @@
 
 // Represents either a single iteration during data collecting OR a batch during optimization
 struct Transition {
-    torch::Tensor heatmap;
     torch::Tensor best_asks;
     torch::Tensor best_bids;
     torch::Tensor agent_state;
@@ -29,7 +28,7 @@ public:
     MemoryBuffer(int64_t T_max); // Constructeur avec taille maximale
     void store(const Transition& exp);
     void clear();
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor,
         torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get() const;
 
     torch::Tensor computeReturns(float last_value, float gamma) const;
@@ -40,7 +39,6 @@ public:
 private:
     int64_t T_max_;              // Taille maximale de la trajectoire
     int64_t current_size_;       // Nombre de transitions stockées
-    torch::Tensor heatmaps;      // [T_max, 1, 401, 50]
     torch::Tensor best_asks;     // [T_max, 1, 50]
     torch::Tensor best_bids;     // [T_max, 1, 50]
     torch::Tensor agent_states;  // [T_max, 1]
@@ -83,7 +81,6 @@ public:
     void updateRewardWindows();
 
 	AgentState getAgentState() const { return agent_state; }
-    torch::Tensor getHeatmapTensor() const { return heatmap_data_tensor; }
     MemoryBuffer getMemoryBuffer() const { return memoryBuffer; }
 
     void printTradeLogs() const;
@@ -98,7 +95,6 @@ public:
 private:
     OrderBook orderBook;
     Heatmap heatmap;       
-    torch::Tensor heatmap_data_tensor;
     torch::Tensor best_asks_tensor;
     torch::Tensor best_bids_tensor;
     TradingAgentNet* network;

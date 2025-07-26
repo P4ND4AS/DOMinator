@@ -5,7 +5,6 @@
 
 MemoryBuffer::MemoryBuffer(int64_t T_max) : T_max_(T_max), current_size_(0) {
     // Initialiser les tenseurs avec la taille maximale
-    heatmaps = torch::empty({ T_max, 1, 401, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     best_asks = torch::empty({ T_max, 1, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     best_bids = torch::empty({ T_max, 1, 50 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
     agent_states = torch::empty({ T_max, 1 }, torch::dtype(torch::kFloat).device(torch::kCUDA));
@@ -21,26 +20,25 @@ void MemoryBuffer::store(const Transition& exp) {
     if (current_size_ >= T_max_) {
         throw std::runtime_error("MemoryBuffer is full");
     }
-    if (!exp.heatmap.defined() || !exp.agent_state.defined() || !exp.action.defined() ||
-        !exp.log_prob.defined() || !exp.reward.defined() || !exp.value.defined() || !exp.done.defined()) {
+    if (!exp.best_asks.defined() || !exp.best_bids.defined() || !exp.agent_state.defined() ||
+        !exp.action.defined() || !exp.log_prob.defined() || !exp.reward.defined() ||
+        !exp.value.defined() || !exp.done.defined()) {
         throw std::runtime_error("Invalid tensor in store");
     }
-    if (!exp.heatmap.is_cuda() || !exp.agent_state.is_cuda() || !exp.action.is_cuda() ||
-        !exp.log_prob.is_cuda() || !exp.reward.is_cuda() || !exp.value.is_cuda() || !exp.done.is_cuda()) {
+    if (!exp.best_asks.is_cuda() || !exp.best_bids.is_cuda() || !exp.agent_state.is_cuda() ||
+        !exp.action.is_cuda() || !exp.log_prob.is_cuda() || !exp.reward.is_cuda() ||
+        !exp.value.is_cuda() || !exp.done.is_cuda()) {
         throw std::runtime_error("Tensor not on CUDA in store");
     }
     if (exp.agent_state.dim() != 1 || exp.action.dim() != 1 || exp.log_prob.dim() != 1 ||
         exp.reward.dim() != 1 || exp.value.dim() != 1 || exp.done.dim() != 1) {
         throw std::runtime_error("Transition tensor is not 1D");
     }
-    if (exp.heatmap.sizes() != torch::IntArrayRef({ 1, 401, 50 })) {
-        throw std::runtime_error("Heatmap shape mismatch: expected [1, 401, 800], got " +
-            std::to_string(exp.heatmap.sizes()[0]) + "," +
-            std::to_string(exp.heatmap.sizes()[1]) + "," +
-            std::to_string(exp.heatmap.sizes()[2]));
+    if (exp.best_asks.sizes() != torch::IntArrayRef({ 1, 50 }) ||
+        exp.best_bids.sizes() != torch::IntArrayRef({ 1, 50 })) {
+        throw std::runtime_error("Best asks/bids shape mismatch: expected [1, 50]");
     }
 
-    heatmaps[current_size_] = exp.heatmap.clone().detach();
     best_asks[current_size_] = exp.best_asks.clone().detach();
     best_bids[current_size_] = exp.best_bids.clone().detach();
     agent_states[current_size_] = exp.agent_state.clone().detach();
@@ -55,7 +53,6 @@ void MemoryBuffer::store(const Transition& exp) {
 void MemoryBuffer::clear() {
     current_size_ = 0;
     
-    heatmaps.zero_();
     best_asks.zero_();
     best_bids.zero_();
     agent_states.zero_();
@@ -66,18 +63,17 @@ void MemoryBuffer::clear() {
     dones.zero_();
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor,
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor,
     torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
     MemoryBuffer::get() const {
     if (current_size_ == 0) {
         return std::make_tuple(
-            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor()
         );
     }
     // Retourner les tranches des tenseurs jusqu'à current_size_
     return std::make_tuple(
-        heatmaps.slice(0, 0, current_size_),
         best_asks.slice(0, 0, current_size_),
         best_bids.slice(0, 0, current_size_),
         agent_states.slice(0, 0, current_size_),
@@ -153,7 +149,7 @@ Transition MemoryBuffer::sampleMiniBatch(int batch_size, const torch::Tensor& in
         return Transition{
             torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(), torch::Tensor(), torch::Tensor()
+            torch::Tensor(), torch::Tensor()
         };
     }
 
@@ -162,7 +158,6 @@ Transition MemoryBuffer::sampleMiniBatch(int batch_size, const torch::Tensor& in
         };
 
     return Transition{
-        sliced(heatmaps),
         sliced(best_asks),
         sliced(best_bids),
         sliced(agent_states),
@@ -196,8 +191,6 @@ TradingEnvironment::TradingEnvironment(TradingAgentNet* network,
         heatmap.updateData(orderBook.getCurrentBook());
 
     }
-    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
-        torch::kFloat).to(torch::kCUDA);
     best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
         torch::kFloat).to(torch::kCUDA);
     best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
@@ -224,8 +217,6 @@ void TradingEnvironment::reset() {
         heatmap.updateData(orderBook.getCurrentBook());
 
     }
-    heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
-        torch::kFloat).to(torch::kCUDA);
     best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
         torch::kFloat).to(torch::kCUDA);
     best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
@@ -243,6 +234,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
     float best_bid = orderBook.getCurrentBestBid();
     float best_ask = orderBook.getCurrentBestAsk();
     int current_position = agent_state.position;
+
+    torch::Tensor state_tensor = agent_state.toTensor(); // [1]
+    torch::Tensor best_asks_fot_storage = best_asks_tensor.squeeze(1);
+    torch::Tensor best_bids_fot_storage = best_bids_tensor.squeeze(1);
 
     float commission = 4.58f;
     float leverage = 20.0f;
@@ -357,14 +352,10 @@ void TradingEnvironment::handleAction(Action action, const torch::Tensor& policy
         isInvalid = true;
     }
 
-    torch::Tensor heatmap_for_storage = heatmap_data_tensor.squeeze(1); // [1, 1, 401, 800] -> [1, 401, 800]
-    torch::Tensor state_tensor = agent_state.toTensor(); // [1]
-    torch::Tensor best_asks_fot_storage = best_asks_tensor.squeeze(1);
-    torch::Tensor best_bids_fot_storage = best_bids_tensor.squeeze(1);
  
     RewardWindow rw(current_decision_index, action, entry_price, current_position,
         policy[0][static_cast<int64_t>(action)].unsqueeze(0).to(torch::kCUDA),
-        value, heatmap_for_storage, state_tensor, best_asks_fot_storage,
+        value, state_tensor, best_asks_fot_storage,
         best_bids_fot_storage, isInvalid);
 
     reward_windows.push_back(rw);
@@ -385,7 +376,7 @@ void TradingEnvironment::updateRewardWindows() {
             torch::Tensor log_prob = torch::log(it->proba);
             torch::Tensor done_tensor = torch::tensor({ isEpisodeDone ? 1.0f : 0.0f },
                 torch::kFloat).to(torch::kCUDA);
-            Transition transition{ it->heatmap, it->best_asks, it->best_bids,
+            Transition transition{ it->best_asks, it->best_bids,
                                 it->agent_state_tensor, action_tensor,
                                 log_prob, reward, it->value.squeeze(0), done_tensor };
             memoryBuffer.store(transition);
@@ -446,8 +437,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
 
         // Update heatmap and agent_state
         heatmap.updateData(orderBook.getCurrentBook());
-        heatmap_data_tensor = torch::from_blob(heatmap.data.data(), { 1, 1, 401, 50 },
-            torch::kFloat).to(torch::kCUDA);
+
         best_asks_tensor = torch::from_blob(heatmap.best_ask_history.data(), { 1, 1, 50 },
             torch::kFloat).to(torch::kCUDA);
         best_bids_tensor = torch::from_blob(heatmap.best_bid_history.data(), { 1, 1, 50 },
@@ -455,7 +445,7 @@ void TradingEnvironment::collectTransitions(std::mt19937& rng) {
         torch::Tensor state_tensor = agent_state.toTensor().unsqueeze(0);
         // Policy and value
         
-        auto [policy, value] = network->forward(heatmap_data_tensor, state_tensor, best_asks_tensor, best_bids_tensor);
+        auto [policy, value] = network->forward(state_tensor, best_asks_tensor, best_bids_tensor);
         //std::cout << "  Policy: [" << policy[0][0].item<float>() << ", " << policy[0][1].item<float>() << ", " << policy[0][2].item<float>() << "]" << std::endl;
         //std::cout << "  Value: " << value.item<float>() << std::endl;
 
@@ -545,7 +535,7 @@ void TradingEnvironment::optimize(std::mt19937& rng, int num_epochs, int batch_s
             auto batch_returns = returns.index_select(0, selected_indices);
 
             // Compute new policy and value
-            auto [policy, value] = network->forward(batch.heatmap, batch.agent_state, batch.best_asks, batch.best_bids);
+            auto [policy, value] = network->forward(batch.agent_state, batch.best_asks, batch.best_bids);
             auto log_probs = torch::log(policy.gather(1, batch.action.unsqueeze(1))).squeeze(1);
             auto ratios = torch::exp(log_probs - batch.log_prob);
 
