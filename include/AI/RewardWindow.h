@@ -47,21 +47,17 @@ struct RewardWindow {
     }
 
     torch::Tensor computeWeightedReward(float alpha = 0.2f) const {
-        
         if (agent_state_at_action == 0 && action == Action::WAIT) {
-            //std::cout << "WAIT with no position, reward: -0.01" << std::endl;
             return torch::tensor({ -2.0f }, torch::kFloat).to(torch::kCUDA);
         }
         if (isInvalid) {
-            //std::cout << "Invalid action, reward: -0.01" << std::endl;
-            return torch::tensor({ -10.0f }, torch::kFloat).to(torch::kCUDA);
+            return torch::tensor({ -20.0f }, torch::kFloat).to(torch::kCUDA);
         }
         if (latent_pnls.size(0) == 0) {
-            //std::cout << "Empty latent_pnls, reward: 0" << std::endl;
             return torch::tensor({ 0.0f }, torch::kFloat).to(torch::kCUDA);
         }
         auto indices = torch::arange(latent_pnls.size(0) - 1, -1, -1, torch::kFloat).to(torch::kCUDA);
-        auto weights = torch::exp(-alpha * indices);
+        auto weights = 1.0f / (indices + 1.0f); // Poids en 1/x
         auto total_weight = weights.sum();
         auto reward = (weights * latent_pnls).sum();
         auto weighted_reward = total_weight.item<float>() > 0.0f

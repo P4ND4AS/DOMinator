@@ -26,7 +26,7 @@ TradingAgentNet::TradingAgentNet() {
         pool1d = torch::nn::MaxPool1d(torch::nn::MaxPool1dOptions(2).stride(2)); // [batch_size, 32, 50] -> [batch_size, 32, 25]
 
         // Couches fully connected
-        fc1 = register_module("fc1", torch::nn::Linear(1616, 512)); // 16 (state) + 32×25 (asks) + 32×25 (bids) = 1616
+        fc1 = register_module("fc1", torch::nn::Linear(6416, 512)); // 16 (state) + 32×25 (asks) + 32×25 (bids) = 1616
         fc2 = register_module("fc2", torch::nn::Linear(512, 256));
         fc3 = register_module("fc3", torch::nn::Linear(256, 128));
 
