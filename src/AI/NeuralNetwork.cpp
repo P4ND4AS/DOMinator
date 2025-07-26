@@ -2,43 +2,49 @@
 
 
 TradingAgentNet::TradingAgentNet() {
-    // CNN pour la heatmap (401x800x1)
-    conv1 = register_module("conv1", torch::nn::Conv2d(
-        torch::nn::Conv2dOptions(1, 32, 3).stride(2)));
-    bn1 = register_module("bn1", torch::nn::BatchNorm2d(32));
-    conv2 = register_module("conv2", torch::nn::Conv2d(
-        torch::nn::Conv2dOptions(32, 64, 3).stride(1)));
-    bn2 = register_module("bn2", torch::nn::BatchNorm2d(64));
-    conv3 = register_module("conv3", torch::nn::Conv2d(
-        torch::nn::Conv2dOptions(64, 128, 3).stride(1).padding(1)));
-    bn3 = register_module("bn3", torch::nn::BatchNorm2d(128));
-    conv4 = register_module("conv4", torch::nn::Conv2d(
-        torch::nn::Conv2dOptions(128, 256, 3).stride(1).padding(1)));
-    bn4 = register_module("bn4", torch::nn::BatchNorm2d(256));
-    pool = torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(2).stride(2));
+    try {
+        conv1 = register_module("conv1", torch::nn::Conv2d(
+            torch::nn::Conv2dOptions(1, 32, 3).stride(2)));
+        bn1 = register_module("bn1", torch::nn::BatchNorm2d(32));
+        conv2 = register_module("conv2", torch::nn::Conv2d(
+            torch::nn::Conv2dOptions(32, 64, 3).stride(1)));
+        bn2 = register_module("bn2", torch::nn::BatchNorm2d(64));
+        conv3 = register_module("conv3", torch::nn::Conv2d(
+            torch::nn::Conv2dOptions(64, 128, 3).stride(1).padding(1)));
+        bn3 = register_module("bn3", torch::nn::BatchNorm2d(128));
+        conv4 = register_module("conv4", torch::nn::Conv2d(
+            torch::nn::Conv2dOptions(128, 256, 3).stride(1).padding(1)));
+        bn4 = register_module("bn4", torch::nn::BatchNorm2d(256));
 
-    // MLP pour l'état de l'agent
-    fc_state = register_module("fc_state", torch::nn::Linear(1, 16));
+        pool = torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(2).stride(2));
 
-    // Convolutions 1D pour best_asks et best_bids
-    conv1d_asks = register_module("conv1d_asks", torch::nn::Conv1d(
-        torch::nn::Conv1dOptions(1, 16, 3).stride(1).padding(1))); // [T_max, 1, 50] -> [T_max, 16, 50]
-    bn1d_asks = register_module("bn1d_asks", torch::nn::BatchNorm1d(16));
-    conv1d_bids = register_module("conv1d_bids", torch::nn::Conv1d(
-        torch::nn::Conv1dOptions(1, 16, 3).stride(1).padding(1))); // [T_max, 1, 50] -> [T_max, 16, 50]
-    bn1d_bids = register_module("bn1d_bids", torch::nn::BatchNorm1d(16));
-    pool1d = torch::nn::MaxPool1d(torch::nn::MaxPool1dOptions(2).stride(2)); // Réduire à [T_max, 16, 25]
+        // MLP pour l'état de l'agent
+        fc_state = register_module("fc_state", torch::nn::Linear(1, 16));
 
-    // Couches fully connected après concaténation
-    fc1 = register_module("fc1", torch::nn::Linear(63536, 1024));
-    fc2 = register_module("fc2", torch::nn::Linear(1024, 512));
-    fc3 = register_module("fc3", torch::nn::Linear(512, 128));
+        // Convolutions 1D pour best_asks et best_bids
+        conv1d_asks = register_module("conv1d_asks", torch::nn::Conv1d(
+            torch::nn::Conv1dOptions(1, 16, 3).stride(1).padding(1))); // [T_max, 1, 50] -> [T_max, 16, 50]
+        bn1d_asks = register_module("bn1d_asks", torch::nn::BatchNorm1d(16));
+        conv1d_bids = register_module("conv1d_bids", torch::nn::Conv1d(
+            torch::nn::Conv1dOptions(1, 16, 3).stride(1).padding(1))); // [T_max, 1, 50] -> [T_max, 16, 50]
+        bn1d_bids = register_module("bn1d_bids", torch::nn::BatchNorm1d(16));
+        pool1d = torch::nn::MaxPool1d(torch::nn::MaxPool1dOptions(2).stride(2)); // Réduire à [T_max, 16, 25]
 
-    // Têtes pour la politique et la valeur
-    policy_head = register_module("policy_head", torch::nn::Linear(128, 3));
-    value_head = register_module("value_head", torch::nn::Linear(128, 1));
+        // Couches fully connected après concaténation
+        fc1 = register_module("fc1", torch::nn::Linear(63536, 1024));
+        fc2 = register_module("fc2", torch::nn::Linear(1024, 512));
+        fc3 = register_module("fc3", torch::nn::Linear(512, 128));
 
-    to(torch::kCUDA);
+        // Têtes pour la politique et la valeur
+        policy_head = register_module("policy_head", torch::nn::Linear(128, 3));
+        value_head = register_module("value_head", torch::nn::Linear(128, 1));
+
+        to(torch::kCUDA);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Erreur dans TradingAgentNet : " << e.what() << "\n";
+        throw;
+    }
 }
 
 

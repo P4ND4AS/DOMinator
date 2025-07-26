@@ -132,20 +132,23 @@ int main() {
     // ------------------- AI SETUP -------------------
     
     try {
+
         HMODULE torchCudaDll = LoadLibraryA("torch_cuda.dll");
         if (torchCudaDll == NULL) {
             std::cerr << "Échec du chargement de torch_cuda.dll. Code d'erreur : " << GetLastError() << std::endl;
             return -1;
         }
+
         if (!torch::cuda::is_available()) {
             std::cerr << "Erreur CUDA : " << std::endl;
             return -1;
         }
         // Définir le device (GPU)
+
         torch::Device device(torch::kCUDA);
 
         TradingAgentNet network;
-
+ 
         TradingEnvironment env(&network, rng, 1, 180, 10);
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -316,7 +319,7 @@ int main() {
         }
         glfwSwapBuffers(window);
         glfwPollEvents();
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     quad.~Quad();
